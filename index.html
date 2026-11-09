@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syncora — Resumos de RPG em PDF</title>
+    <link rel="stylesheet" href="./style.css">
+    <script src="./app.js" defer></script>
+</head>
+
+<body>
+    <h1>Syncora</h1>
+    <div class="resp" id="resp" aria-live="polite">
+        <p>Envie um PDF de RPG para gerar um resumo organizado em um novo arquivo PDF.</p>
+    </div>
+    <div class="envio">
+        <label for="arquivo">Envie sua história ou livro de RPG</label>
+        <input type="file" name="arquivo" id="arquivo" accept="application/pdf,.pdf">
+        <button type="button" id="btn-enviar" onclick="enviar()">Gerar resumo em PDF</button>
+        <button type="button" id="btn-parar" onclick="parar()" disabled>Parar</button>
+        <div class="configuracao-teste">
+            <label>
+                <input type="checkbox" id="modo-teste" checked>
+                Modo de teste rápido: primeiras 3 páginas úteis, resumo curto e prévia das respostas
+            </label>
+        </div>
+    </div>
+</body>
+
+</html>

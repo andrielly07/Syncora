@@ -1,0 +1,6 @@
+{
+    "name": "davil/syncora",
+    "require": {
+        "smalot/pdfparser": "^2.12"
+    }
+}
