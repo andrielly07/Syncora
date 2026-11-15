@@ -22,7 +22,6 @@ function textoParaWinAnsi($texto)
             $texto = $convertido;
         }
     } else {
-        // Fallback sem iconv: conserva ASCII e evita bytes UTF-8 inválidos no PDF.
         $texto = preg_replace('/[^\x20-\x7E\x0A]/', '?', $texto);
     }
 
@@ -83,7 +82,12 @@ class DocumentoResumoPdf
 
         if (!empty($this->paginas)) {
             $this->comandos[] = comandoTextoPdf(
-                textoParaWinAnsi('SYNCORA  |  RESUMO DO PDF'), 52, 808, 8, 1, '0.42 0.45 0.52'
+                textoParaWinAnsi('SYNCORA  |  RESUMO DO PDF'),
+                52,
+                808,
+                8,
+                1,
+                '0.42 0.45 0.52'
             );
             $this->comandos[] = 'q 0.84 0.85 0.89 RG 0.7 w 52 798 m 543 798 l S Q';
             $this->y = 778;
@@ -164,7 +168,8 @@ class DocumentoResumoPdf
                         $nome = isset($personagem['nome']) ? trim((string) $personagem['nome']) : '';
                         $descricao = isset($personagem['descricao']) ? trim((string) $personagem['descricao']) : '';
                         $texto = trim($nome . ($descricao !== '' ? ': ' . $descricao : ''));
-                        if ($texto !== '') $this->adicionarParagrafo($texto, 14);
+                        if ($texto !== '')
+                            $this->adicionarParagrafo($texto, 14);
                     }
                 }
             }
@@ -173,11 +178,14 @@ class DocumentoResumoPdf
                 ? $resumo['topicos'] : [];
             $temPersonagens = !empty($personagens);
             foreach ($topicos as $topico) {
-                if (!is_array($topico)) continue;
+                if (!is_array($topico))
+                    continue;
                 $tituloTopico = isset($topico['titulo']) ? trim((string) $topico['titulo']) : '';
                 $itens = isset($topico['itens']) && is_array($topico['itens']) ? $topico['itens'] : [];
-                if ($tituloTopico === '' || empty($itens)) continue;
-                if ($temPersonagens && preg_match('/^personagens?$/iu', $tituloTopico)) continue;
+                if ($tituloTopico === '' || empty($itens))
+                    continue;
+                if ($temPersonagens && preg_match('/^personagens?$/iu', $tituloTopico))
+                    continue;
                 $this->adicionarTituloSecao($tituloTopico);
                 foreach ($itens as $item) {
                     if (is_string($item) && trim($item) !== '') {
@@ -359,9 +367,11 @@ if (!is_array($blocosRecebidos) || count($blocosRecebidos) === 0 || count($bloco
 
 $blocos = [];
 foreach ($blocosRecebidos as $bloco) {
-    if (!is_array($bloco) || !isset($bloco['numero'], $bloco['resumo'])
+    if (
+        !is_array($bloco) || !isset($bloco['numero'], $bloco['resumo'])
         || !is_numeric($bloco['numero'])
-        || (!is_array($bloco['resumo']) && !is_string($bloco['resumo']))) {
+        || (!is_array($bloco['resumo']) && !is_string($bloco['resumo']))
+    ) {
         responderErroPdf(400, 'Um dos blocos recebidos está em formato inválido.');
     }
 

@@ -15,7 +15,7 @@ if ($textoPagina === '') {
 
 if ($modoTeste) {
     $instrucaoResumo = 'Faça um resumo curto, com no máximo 3 tópicos e cerca de 60 palavras.';
-    $limiteTokens = 220;
+    $limiteTokens = 330;
 } else {
     $instrucaoResumo = 'Faça um resumo claro e objetivo, preservando nomes, lugares, regras, valores numéricos e informações importantes.';
     $limiteTokens = 600;
@@ -32,7 +32,10 @@ TEXTO:
 $textoPagina
 PROMPT;
 
-$url = 'http://localhost:11434/api/generate';
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+$url = $_ENV['URL_IA'];
+
 $data = [
     'model' => 'gemma3',
     'prompt' => $prompt,
@@ -91,7 +94,6 @@ $erroCurl = curl_error($ch);
 $codigoHttp = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 if ($buffer !== '')
     $emitirLinha($buffer);
-curl_close($ch);
 
 if ($erroOllama !== null) {
     http_response_code(502);

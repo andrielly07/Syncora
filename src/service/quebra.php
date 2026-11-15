@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
-require 'vendor/autoload.php';
+require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 // ─── LIMITE MÍNIMO DE TEXTO ÚTIL POR PÁGINA (em caracteres) ──────────────────
 const MIN_CHARS_PAGINA = 80;
@@ -39,7 +39,7 @@ const PALAVRAS_CAPA = [
 function deveDescartarPagina(string $texto, int $numeroPagina): bool
 {
     $textoLimpo = trim($texto);
-    $tamanho    = mb_strlen($textoLimpo, 'UTF-8');
+    $tamanho = mb_strlen($textoLimpo, 'UTF-8');
 
     // Página completamente vazia
     if ($tamanho === 0) {
@@ -74,7 +74,8 @@ function deveDescartarPagina(string $texto, int $numeroPagina): bool
     $linhasComTexto = 0;
     foreach ($linhas as $linha) {
         $l = trim($linha);
-        if ($l === '') continue;
+        if ($l === '')
+            continue;
         $linhasComTexto++;
         if (preg_match('/(\.\s*){4,}\s*\d+\s*$/', $l)) {
             $linhasComPontilhado++;
@@ -117,8 +118,8 @@ function quebrarPdfPorPaginas(): string
 {
     if (!isset($_FILES['rpg_pdf'])) {
         return json_encode([
-            'sucesso'   => false,
-            'mensagem'  => 'Arquivo não indexado corretamente no FormData.',
+            'sucesso' => false,
+            'mensagem' => 'Arquivo não indexado corretamente no FormData.',
         ], JSON_UNESCAPED_UNICODE);
     }
 
@@ -127,17 +128,17 @@ function quebrarPdfPorPaginas(): string
     // Valida tipo MIME básico
     if ($file['error'] !== UPLOAD_ERR_OK) {
         return json_encode([
-            'sucesso'  => false,
+            'sucesso' => false,
             'mensagem' => 'Erro no upload do arquivo (código ' . $file['error'] . ').',
         ], JSON_UNESCAPED_UNICODE);
     }
 
     try {
         $parser = new \Smalot\PdfParser\Parser();
-        $pdf    = $parser->parseFile($file['tmp_name']);
+        $pdf = $parser->parseFile($file['tmp_name']);
     } catch (\Exception $e) {
         return json_encode([
-            'sucesso'  => false,
+            'sucesso' => false,
             'mensagem' => 'Não foi possível abrir o PDF: ' . $e->getMessage(),
         ], JSON_UNESCAPED_UNICODE);
     }
@@ -146,14 +147,14 @@ function quebrarPdfPorPaginas(): string
 
     if (empty($paginas)) {
         return json_encode([
-            'sucesso'  => false,
+            'sucesso' => false,
             'mensagem' => 'O PDF não contém páginas legíveis.',
         ], JSON_UNESCAPED_UNICODE);
     }
 
-    $paginasUteis   = [];
-    $totalPaginas   = count($paginas);
-    $descartadas    = 0;
+    $paginasUteis = [];
+    $totalPaginas = count($paginas);
+    $descartadas = 0;
 
     foreach ($paginas as $numeroPagina => $pagina) {
         $numReal = $numeroPagina + 1; // índice 0-based → número 1-based
@@ -175,23 +176,23 @@ function quebrarPdfPorPaginas(): string
 
         $paginasUteis[] = [
             'numero' => $numReal,
-            'texto'  => $textoNormalizado,
+            'texto' => $textoNormalizado,
         ];
     }
 
     if (empty($paginasUteis)) {
         return json_encode([
-            'sucesso'  => false,
+            'sucesso' => false,
             'mensagem' => 'Nenhuma página com conteúdo útil foi encontrada no PDF.',
         ], JSON_UNESCAPED_UNICODE);
     }
 
     return json_encode([
-        'sucesso'         => true,
-        'total_paginas'   => $totalPaginas,
-        'total_uteis'     => count($paginasUteis),
+        'sucesso' => true,
+        'total_paginas' => $totalPaginas,
+        'total_uteis' => count($paginasUteis),
         'total_descartadas' => $descartadas,
-        'paginas'         => $paginasUteis,
+        'paginas' => $paginasUteis,
     ], JSON_UNESCAPED_UNICODE);
 }
 

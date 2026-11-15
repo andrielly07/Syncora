@@ -1,6 +1,7 @@
 {
     "name": "davil/syncora",
     "require": {
-        "smalot/pdfparser": "^2.12"
+        "smalot/pdfparser": "^2.12",
+        "vlucas/phpdotenv": "^5.8"
     }
 }

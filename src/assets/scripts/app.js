@@ -1,4 +1,4 @@
-const LIMITE_PAGINAS_TESTE = 3;
+const LIMITE_PAGINAS_TESTE = 5;
 const TEMPO_LIMITE_BLOCO_MS = 180000;
 let controleCancelamento = null;
 let urlPdfAtual = null;
@@ -190,9 +190,10 @@ async function enviar() {
     try {
         const formPdf = new FormData();
         formPdf.append('rpg_pdf', arquivo);
-        const respQuebra = await fetch('./quebra.php', {
+        const respQuebra = await fetch('src/service/quebra.php', {
             method: 'POST', body: formPdf, signal: controleCancelamento.signal
         });
+
         const dadosPdf = await lerJsonResposta(respQuebra, 'O servidor retornou uma resposta inválida ao processar o PDF.');
         if (!dadosPdf.sucesso) throw new Error(dadosPdf.mensagem || 'Não foi possível ler o PDF enviado.');
 
@@ -227,7 +228,7 @@ async function enviar() {
                 formOllama.append('numero_pagina', pagina.numero);
                 formOllama.append('modo_teste', modoTeste ? '1' : '0');
 
-                const respOllama = await fetchComTimeout('./ollama.php', {
+                const respOllama = await fetchComTimeout('src/service/ollama.php', {
                     method: 'POST', body: formOllama, signal: controleCancelamento.signal
                 }, TEMPO_LIMITE_BLOCO_MS, `Tempo limite excedido na página ${pagina.numero}. Bloco ignorado.`);
                 const textoResumo = (await respOllama.text()).trim();
@@ -253,7 +254,7 @@ async function enviar() {
         }
 
         status.textContent = ' Compilando os resumos em um único arquivo PDF…';
-        const respPdf = await fetch('./gerar_pdf.php', {
+        const respPdf = await fetch('src/service/gerar_pdf.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify({ titulo: nomeArquivo, paginas: blocos }),
