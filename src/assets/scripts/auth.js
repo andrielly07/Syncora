@@ -12,12 +12,10 @@ form.addEventListener('submit', async (e) => {
         resp = await fetch('./src/service/auth/cadastro.php', {
             method: 'POST',
             body: formData
-        })
+        }).then(data => data.json())
     else
         resp = await fetch('./src/service/auth/login.php', {
             method: 'POST',
             body: formData
-        })
-
-    console.log(await resp.json())
+        }).then(data => data.json())
 })
