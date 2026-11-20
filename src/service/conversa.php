@@ -24,7 +24,7 @@ try {
     if (!$pdo instanceof PDO) throw new RuntimeException('Conexão inválida.');
 
     $stmt = $pdo->prepare(
-        'SELECT historico_id, name_file, numbers_page, created_at
+        'SELECT historico_id, name_file, numbers_page, stored_file_name, created_at
          FROM tb_historico
          WHERE historico_id = :historico_id AND user_id = :user_id'
     );

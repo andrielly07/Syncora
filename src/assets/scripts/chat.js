@@ -84,6 +84,11 @@ async function carregarConversa() {
 
         document.getElementById('titulo-conversa').textContent = dados.historico.name_file;
         document.getElementById('resumo-conversa').textContent = `${dados.historico.numbers_page} páginas · criado ${new Date(dados.historico.created_at).toLocaleDateString('pt-BR')}`;
+        const linkDownload = document.createElement('a');
+        linkDownload.className = 'link-download';
+        linkDownload.href = `src/service/download.php?historico_id=${encodeURIComponent(historicoId)}`;
+        linkDownload.textContent = `Baixar arquivo original (${dados.historico.stored_file_name})`;
+        document.getElementById('resumo-conversa').after(linkDownload);
         container.innerHTML = '';
 
         if (!dados.mensagens.length) {

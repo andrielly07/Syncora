@@ -263,6 +263,8 @@ async function enviar() {
         const formHistorico = new FormData();
         formHistorico.append('name_file', nomeArquivo);
         formHistorico.append('numbers_page', dadosPdf.total_paginas || paginasEncontradas.length);
+        formHistorico.append('stored_file_name', dadosPdf.arquivo_salvo?.nome || '');
+        formHistorico.append('stored_file_path', dadosPdf.arquivo_salvo?.caminho || '');
         const respHistorico = await fetch('src/service/criar_historico.php', {
             method: 'POST',
             body: formHistorico,
