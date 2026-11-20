@@ -2,6 +2,53 @@ const LIMITE_PAGINAS_TESTE = 5;
 const TEMPO_LIMITE_BLOCO_MS = 180000;
 let controleCancelamento = null;
 let urlPdfAtual = null;
+let conversaAtual = null;
+
+function escaparTexto(valor) {
+    return String(valor ?? '').replace(/[&<>"]/g, caractere => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+    })[caractere]);
+}
+
+function renderizarHistorico(mensagens) {
+    const container = document.getElementById('historico-chat');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!mensagens.length) {
+        container.innerHTML = '<p class="historico-vazio">O histórico de respostas vão aparecer aqui.</p>';
+        return;
+    }
+
+    for (const mensagem of mensagens) {
+        const item = document.createElement('article');
+        item.className = `mensagem-chat ${mensagem.role === 'assistant' ? 'mensagem-ia' : 'mensagem-usuario'}`;
+        item.innerHTML = `
+            <div class="mensagem-meta">${escaparTexto(mensagem.document_name)} · página ${escaparTexto(mensagem.page_number)} · ${escaparTexto(mensagem.created_at)}</div>
+            <div class="mensagem-conteudo"></div>`;
+        item.querySelector('.mensagem-conteudo').appendChild(renderizarMarkdown(mensagem.content));
+        container.appendChild(item);
+    }
+}
+
+async function carregarHistorico() {
+    const container = document.getElementById('historico-chat');
+    if (!container) return;
+    try {
+        const resposta = await fetch('src/service/historico.php', { credentials: 'same-origin' });
+        const dados = await resposta.json();
+
+        if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível carregar o histórico.');
+        renderizarHistorico(dados.mensagens || []);
+    } catch (erro) {
+        container.innerHTML = `<p class="erro">Erro ao carregar histórico</p>`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarHistorico();
+    document.getElementById('btn-atualizar-historico')?.addEventListener('click', carregarHistorico);
+});
 
 function escaparHtml(valor) {
     return String(valor).replace(/[&<>"']/g, caractere => ({
@@ -182,6 +229,9 @@ async function enviar() {
 
     const nomeArquivo = arquivo.name;
     const nomeSeguro = escaparHtml(nomeArquivo);
+    conversaAtual = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     controleCancelamento = new AbortController();
     botaoEnviar.disabled = true;
     botaoParar.disabled = false;
@@ -227,6 +277,8 @@ async function enviar() {
                 formOllama.append('texto_pagina', pagina.texto);
                 formOllama.append('numero_pagina', pagina.numero);
                 formOllama.append('modo_teste', modoTeste ? '1' : '0');
+                formOllama.append('conversa_id', conversaAtual);
+                formOllama.append('documento', nomeArquivo);
 
                 const respOllama = await fetchComTimeout('src/service/ollama.php', {
                     method: 'POST', body: formOllama, signal: controleCancelamento.signal
@@ -237,6 +289,7 @@ async function enviar() {
                 }
                 blocos.push({ numero: Number(pagina.numero) || (i + 1), resumo: textoResumo });
                 adicionarPrevia(previas, pagina.numero, progresso, textoResumo);
+                carregarHistorico();
                 status.textContent = `Resumo da página ${progresso} recebido. ${i < paginas.length - 1 ? 'Continuando…' : 'Preparando o PDF…'}`;
             } catch (erroBloco) {
                 // Um bloco com erro ou resposta inválida não interrompe o livro inteiro.

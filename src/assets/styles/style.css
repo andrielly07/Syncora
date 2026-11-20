@@ -23,6 +23,66 @@ h1 {
     text-shadow: 0 0 20px rgba(201, 168, 76, .4);
 }
 
+.historico {
+    width: 100%;
+    max-width: 860px;
+    margin-bottom: 20px;
+    padding: 16px;
+    border: 1px solid #2a2a4a;
+    border-radius: 12px;
+    background: #16213e;
+}
+
+.historico-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.historico-header h2 {
+    color: #c9a84c;
+    font-size: 1.05rem;
+}
+
+#btn-atualizar-historico {
+    padding: 7px 12px;
+    border: 1px solid #c9a84c;
+    border-radius: 6px;
+    background: transparent;
+    color: #c9a84c;
+    cursor: pointer;
+}
+
+.historico-chat {
+    max-height: 38vh;
+    overflow-y: auto;
+}
+
+.mensagem-chat {
+    margin: 10px 0;
+    padding: 11px 13px;
+    border-radius: 9px;
+    border-left: 3px solid #5e35b1;
+    background: rgba(46, 26, 110, .2);
+}
+
+.mensagem-meta {
+    margin-bottom: 6px;
+    color: #9d9db2;
+    font-size: .72rem;
+}
+
+.mensagem-conteudo p:first-child {
+    margin-top: 0;
+}
+
+.historico-vazio {
+    color: #aaa;
+    font-size: .9rem;
+}
+
 .resp {
     width: 100%;
     max-width: 860px;

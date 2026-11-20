@@ -3,44 +3,100 @@ set_time_limit(0);
 header('Content-Type: text/plain; charset=utf-8');
 header('Cache-Control: no-cache');
 
+session_start();
+
 function erroIa(int $status, string $mensagem): void
 {
     http_response_code($status);
-    echo "[Erro IA]:  $mensagem";
+    echo '[Erro IA]: ' . $mensagem;
     exit;
 }
 
-// O .env e o vendor ficam na raiz do projeto, não dentro de src/service.
-$raizProjeto = dirname(__DIR__, 2);
-$autoload = "$raizProjeto/vendor/autoload.php";
+function usuarioLogado(): int
+{
+    $sessao = $_SESSION['user'] ?? null;
+    if (!is_string($sessao) || $sessao === '') {
+        erroIa(401, 'Faça login para salvar e consultar suas conversas.');
+    }
 
+    $usuario = json_decode($sessao, true);
+    $id = filter_var($usuario['user_id'] ?? null, FILTER_VALIDATE_INT);
+    if (!$id || $id < 1) {
+        erroIa(401, 'Sessão de usuário inválida. Faça login novamente.');
+    }
+
+    return $id;
+}
+
+function validarConversa(string $valor): string
+{
+    $valor = trim($valor);
+    if (!preg_match('/^[a-f0-9-]{16,64}$/i', $valor)) {
+        erroIa(400, 'Identificador de conversa inválido.');
+    }
+    return $valor;
+}
+
+function salvarResposta(int $usuarioId, string $conversaId, string $documento, int $pagina, string $resposta): void
+{
+    require_once dirname(__DIR__, 2) . '/conection.php';
+
+    try {
+        $pdo = conect();
+        if (!$pdo instanceof PDO) {
+            throw new RuntimeException('A conexão com o banco não foi criada.');
+        }
+
+        $sql = 'INSERT INTO tb_chat_mensagem
+                    (user_id, conversation_id, document_name, page_number, role_dif, content)
+                VALUES
+                    (:user_id, :conversation_id, :document_name, :page_number, :role_dif, :content)';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':user_id' => $usuarioId,
+            ':conversation_id' => $conversaId,
+            ':document_name' => $documento,
+            ':page_number' => max(0, $pagina),
+            ':role_dif' => 'assistant',
+            ':content' => $resposta,
+        ]);
+    } catch (Throwable $erro) {
+        erroIa(500, 'A resposta foi gerada, mas não pôde ser salva no banco. Verifique se executou database.sql.');
+    }
+}
+
+$usuarioId = usuarioLogado();
+
+$raizProjeto = dirname(__DIR__, 2);
+$autoload = $raizProjeto . '/vendor/autoload.php';
 if (!is_file($autoload)) {
     erroIa(500, 'Dependências não instaladas. Execute "composer install" na raiz do projeto.');
 }
-
 require_once $autoload;
 
 try {
     Dotenv\Dotenv::createImmutable($raizProjeto)->safeLoad();
 } catch (Throwable $erro) {
-    erroIa(500, 'Não foi possível carregar a configuração da IA: ' . $erro->getMessage());
+    erroIa(500, 'Não foi possível carregar a configuração da IA.');
 }
 
 $textoPagina = isset($_POST['texto_pagina']) ? trim((string) $_POST['texto_pagina']) : '';
 $numeroPagina = isset($_POST['numero_pagina']) ? (int) $_POST['numero_pagina'] : 0;
 $modoTeste = isset($_POST['modo_teste']) && $_POST['modo_teste'] === '1';
+$conversaId = validarConversa((string) ($_POST['conversa_id'] ?? ''));
+$documento = trim((string) ($_POST['documento'] ?? 'documento.pdf'));
+$documento = basename(str_replace('\\', '/', $documento));
+$documento = preg_replace('/[\x00-\x1F\x7F]/', '', $documento);
+$documento = mb_substr($documento ?: 'documento.pdf', 0, 255, 'UTF-8');
 
 if ($textoPagina === '') {
     erroIa(400, 'Nenhum texto recebido.');
 }
 
-if ($modoTeste) {
-    $instrucaoResumo = 'Faça um resumo curto, com no máximo 3 tópicos e cerca de 60 palavras.';
-    $limiteTokens = 330;
-} else {
-    $instrucaoResumo = 'Faça um resumo claro e objetivo, preservando nomes, lugares, regras, valores numéricos e informações importantes.';
-    $limiteTokens = 600;
-}
+$instrucaoResumo = $modoTeste
+    ? 'Faça um resumo curto, com no máximo 3 tópicos e cerca de 60 palavras.'
+    : 'Faça um resumo claro e objetivo, preservando nomes, lugares, regras, valores numéricos e informações importantes.';
+$limiteTokens = $modoTeste ? 330 : 600;
 
 $prompt = <<<PROMPT
 Você é um extrator de informações de livros de RPG.
@@ -53,21 +109,17 @@ TEXTO:
 $textoPagina
 PROMPT;
 
-$url = trim($_ENV['URL_IA'] ?? getenv('URL_IA') ?? '');
-$modelo = trim($_ENV['MODELO_IA'] ?? getenv('MODELO_IA') ?? 'gemma3');
-$chave = trim($_ENV['KEY_IA'] ?? getenv('KEY_IA') ?? '');
-
-if ($url === '') {
-    erroIa(500, 'URL_IA não foi definida no arquivo .env.');
-}
-if (!filter_var($url, FILTER_VALIDATE_URL)) {
+$url = trim((string) ($_ENV['URL_IA'] ?? getenv('URL_IA') ?? ''));
+$modelo = trim((string) ($_ENV['MODELO_IA'] ?? getenv('MODELO_IA') ?? 'gemma3'));
+$chave = trim((string) ($_ENV['KEY_IA'] ?? getenv('KEY_IA') ?? ''));
+if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
     erroIa(500, 'URL_IA não contém uma URL válida.');
 }
 if ($modelo === '') {
     erroIa(500, 'MODELO_IA não foi definido.');
 }
 
-$data = [
+$payload = json_encode([
     'model' => $modelo,
     'prompt' => $prompt,
     'stream' => true,
@@ -77,9 +129,7 @@ $data = [
         'repeat_penalty' => 1.1,
         'num_predict' => $limiteTokens,
     ],
-];
-
-$payload = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 if ($payload === false) {
     erroIa(500, 'Não foi possível preparar a requisição para a IA.');
 }
@@ -94,30 +144,20 @@ $respostaIa = '';
 $erroIaRemoto = null;
 $emitirLinha = function (string $linha) use (&$respostaIa, &$erroIaRemoto): void {
     $linha = trim($linha);
-    if ($linha === '') {
+    if ($linha === '')
         return;
-    }
-
     $json = json_decode($linha, true);
-    if (!is_array($json)) {
+    if (!is_array($json))
         return;
-    }
-
-    if (isset($json['response']) && is_string($json['response'])) {
+    if (isset($json['response']) && is_string($json['response']))
         $respostaIa .= $json['response'];
-    }
-    if (isset($json['error']) && (string) $json['error'] !== '') {
+    if (isset($json['error']) && (string) $json['error'] !== '')
         $erroIaRemoto = (string) $json['error'];
-    }
 };
 
-$cabecalhos = [
-    'Content-Type: application/json',
-    'Accept: application/x-ndjson, application/json',
-];
-if ($chave !== '') {
+$cabecalhos = ['Content-Type: application/json', 'Accept: application/x-ndjson, application/json'];
+if ($chave !== '')
     $cabecalhos[] = 'Authorization: Bearer ' . $chave;
-}
 
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
@@ -138,21 +178,19 @@ curl_setopt_array($ch, [
 $resultado = curl_exec($ch);
 $erroCurl = curl_error($ch);
 $codigoHttp = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-if ($buffer !== '') {
+if ($buffer !== '')
     $emitirLinha($buffer);
-}
+curl_close($ch);
 
-if ($erroIaRemoto !== null) {
+if ($erroIaRemoto !== null)
     erroIa(502, $erroIaRemoto);
-}
-if ($resultado === false || $erroCurl !== '') {
+if ($resultado === false || $erroCurl !== '')
     erroIa(502, $erroCurl !== '' ? $erroCurl : 'tempo limite excedido');
-}
-if ($codigoHttp >= 400) {
+if ($codigoHttp >= 400)
     erroIa(502, 'A IA respondeu HTTP ' . $codigoHttp . '. Verifique a URL e o modelo ' . $modelo . '.');
-}
-if (trim($respostaIa) === '') {
-    erroIa(502, 'A IA não retornou conteúdo. Verifique se o serviço está ativo e se o modelo ' . $modelo . ' está instalado.');
-}
+if (trim($respostaIa) === '')
+    erroIa(502, 'A IA não retornou conteúdo.');
 
-echo trim($respostaIa);
+$respostaIa = trim($respostaIa);
+salvarResposta($usuarioId, $conversaId, $documento, $numeroPagina, $respostaIa);
+echo $respostaIa;

@@ -11,6 +11,15 @@
 
 <body>
     <h1>Syncora</h1>
+    <section class="historico" aria-labelledby="titulo-historico">
+        <div class="historico-header">
+            <h2 id="titulo-historico">Histórico de conversas</h2>
+            <button type="button" id="btn-atualizar-historico">Atualizar</button>
+        </div>
+        <div id="historico-chat" class="historico-chat" aria-live="polite">
+            <p>Carregando histórico…</p>
+        </div>
+    </section>
     <div class="resp" id="resp" aria-live="polite">
         <p>Envie um PDF de RPG para gerar um resumo organizado em um novo arquivo PDF.</p>
     </div>
