@@ -16,26 +16,23 @@ if (!$usuarioId || $usuarioId < 1) {
     responder(401, ['erro' => 'Faça login para consultar seu histórico.']);
 }
 
-require_once '../../conection.php';
+require_once dirname(__DIR__, 2) . '/conection.php';
 
 try {
     $pdo = conect();
-    if (!$pdo instanceof PDO) {
-        throw new RuntimeException('Conexão inválida.');
-    }
+    if (!$pdo instanceof PDO) throw new RuntimeException('Conexão inválida.');
 
-    $limite = min(max((int) ($_GET['limite'] ?? 100), 1), 500);
     $stmt = $pdo->prepare(
-        'SELECT message_id, conversation_id, document_name, page_number, role_dif, content, created_at
-         FROM tb_chat_mensagem
-         WHERE user_id = :user_id
-         ORDER BY created_at DESC, message_id DESC
-         LIMIT ' . $limite
+        'SELECT h.historico_id, h.name_file, h.numbers_page, h.created_at,
+                COUNT(m.message_id) AS total_mensagens
+         FROM tb_historico h
+         LEFT JOIN tb_chat_mensagem m ON m.historico_id = h.historico_id
+         WHERE h.user_id = :user_id
+         GROUP BY h.historico_id, h.name_file, h.numbers_page, h.created_at
+         ORDER BY h.created_at DESC, h.historico_id DESC'
     );
     $stmt->execute([':user_id' => $usuarioId]);
-    $mensagens = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    responder(200, ['sucesso' => true, 'mensagens' => array_reverse($mensagens)]);
+    responder(200, ['sucesso' => true, 'historicos' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
 } catch (Throwable $erro) {
-    responder(500, ['erro' => 'Não foi possível carregar o histórico. Execute database.sql e tente novamente.']);
+    responder(500, ['erro' => 'Não foi possível carregar os históricos. Execute database.sql e tente novamente.']);
 }

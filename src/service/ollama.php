@@ -37,7 +37,7 @@ function validarConversa(string $valor): string
     return $valor;
 }
 
-function salvarResposta(int $usuarioId, string $conversaId, string $documento, int $pagina, string $resposta): void
+function salvarResposta(int $usuarioId, int $historicoId, string $conversaId, string $documento, int $pagina, string $resposta): void
 {
     require_once dirname(__DIR__, 2) . '/conection.php';
 
@@ -47,13 +47,19 @@ function salvarResposta(int $usuarioId, string $conversaId, string $documento, i
             throw new RuntimeException('A conexão com o banco não foi criada.');
         }
 
+        $verificar = $pdo->prepare('SELECT historico_id FROM tb_historico WHERE historico_id = :historico_id AND user_id = :user_id');
+        $verificar->execute([':historico_id' => $historicoId, ':user_id' => $usuarioId]);
+        if (!$verificar->fetchColumn()) {
+            throw new RuntimeException('Histórico não pertence ao usuário autenticado.');
+        }
+
         $sql = 'INSERT INTO tb_chat_mensagem
-                    (user_id, conversation_id, document_name, page_number, role_dif, content)
+                    (historico_id, conversation_id, document_name, page_number, role_dif, content)
                 VALUES
-                    (:user_id, :conversation_id, :document_name, :page_number, :role_dif, :content)';
+                    (:historico_id, :conversation_id, :document_name, :page_number, :role_dif, :content)';
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            ':user_id' => $usuarioId,
+            ':historico_id' => $historicoId,
             ':conversation_id' => $conversaId,
             ':document_name' => $documento,
             ':page_number' => max(0, $pagina),
@@ -83,6 +89,10 @@ try {
 $textoPagina = isset($_POST['texto_pagina']) ? trim((string) $_POST['texto_pagina']) : '';
 $numeroPagina = isset($_POST['numero_pagina']) ? (int) $_POST['numero_pagina'] : 0;
 $modoTeste = isset($_POST['modo_teste']) && $_POST['modo_teste'] === '1';
+$historicoId = filter_var($_POST['historico_id'] ?? null, FILTER_VALIDATE_INT);
+if (!$historicoId || $historicoId < 1) {
+    erroIa(400, 'Histórico inválido. Inicie o envio do arquivo novamente.');
+}
 $conversaId = validarConversa((string) ($_POST['conversa_id'] ?? ''));
 $documento = trim((string) ($_POST['documento'] ?? 'documento.pdf'));
 $documento = basename(str_replace('\\', '/', $documento));
@@ -192,5 +202,5 @@ if (trim($respostaIa) === '')
     erroIa(502, 'A IA não retornou conteúdo.');
 
 $respostaIa = trim($respostaIa);
-salvarResposta($usuarioId, $conversaId, $documento, $numeroPagina, $respostaIa);
+salvarResposta($usuarioId, $historicoId, $conversaId, $documento, $numeroPagina, $respostaIa);
 echo $respostaIa;

@@ -3,11 +3,19 @@ const TEMPO_LIMITE_BLOCO_MS = 180000;
 let controleCancelamento = null;
 let urlPdfAtual = null;
 let conversaAtual = null;
+let historicoAtual = null;
 
 function escaparTexto(valor) {
     return String(valor ?? '').replace(/[&<>"]/g, caractere => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
     })[caractere]);
+}
+
+function formataData(data) {
+    const horaFormatada = new Date(data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    const dataFormatada = new Date(data).toLocaleDateString('pt-BR')
+
+    return `${horaFormatada} - ${dataFormatada}`
 }
 
 function renderizarHistorico(mensagens) {
@@ -16,17 +24,18 @@ function renderizarHistorico(mensagens) {
     container.innerHTML = '';
 
     if (!mensagens.length) {
-        container.innerHTML = '<p class="historico-vazio">O histórico de respostas vão aparecer aqui.</p>';
+        container.innerHTML = '<p class="historico-vazio">Nenhum arquivo foi processado ainda.</p>';
         return;
     }
 
-    for (const mensagem of mensagens) {
-        const item = document.createElement('article');
-        item.className = `mensagem-chat ${mensagem.role === 'assistant' ? 'mensagem-ia' : 'mensagem-usuario'}`;
+    for (const historico of mensagens) {
+        const item = document.createElement('a');
+        item.className = 'card-historico';
+        item.href = `chat.html?historico_id=${encodeURIComponent(historico.historico_id)}`;
         item.innerHTML = `
-            <div class="mensagem-meta">${escaparTexto(mensagem.document_name)} · página ${escaparTexto(mensagem.page_number)} · ${escaparTexto(mensagem.created_at)}</div>
-            <div class="mensagem-conteudo"></div>`;
-        item.querySelector('.mensagem-conteudo').appendChild(renderizarMarkdown(mensagem.content));
+            <strong>${escaparTexto(historico.name_file)}</strong>
+            <span>${escaparTexto(historico.numbers_page)} páginas · ${escaparTexto(historico.total_mensagens)} respostas</span>
+            <small>${formataData(historico.created_at)}</small>`;
         container.appendChild(item);
     }
 }
@@ -39,7 +48,7 @@ async function carregarHistorico() {
         const dados = await resposta.json();
 
         if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível carregar o histórico.');
-        renderizarHistorico(dados.mensagens || []);
+        renderizarHistorico(dados.historicos || []);
     } catch (erro) {
         container.innerHTML = `<p class="erro">Erro ao carregar histórico</p>`;
     }
@@ -251,6 +260,20 @@ async function enviar() {
         if (!paginasEncontradas.length) throw new Error('Nenhuma página útil foi encontrada no PDF.');
         const paginas = modoTeste ? paginasEncontradas.slice(0, LIMITE_PAGINAS_TESTE) : paginasEncontradas;
 
+        const formHistorico = new FormData();
+        formHistorico.append('name_file', nomeArquivo);
+        formHistorico.append('numbers_page', dadosPdf.total_paginas || paginasEncontradas.length);
+        const respHistorico = await fetch('src/service/criar_historico.php', {
+            method: 'POST',
+            body: formHistorico,
+            credentials: 'same-origin',
+            signal: controleCancelamento.signal,
+        });
+        const dadosHistorico = await lerJsonResposta(respHistorico, 'Não foi possível criar o histórico deste arquivo.');
+        historicoAtual = Number(dadosHistorico.historico_id);
+        if (!historicoAtual) throw new Error('O servidor não retornou o identificador do histórico.');
+        carregarHistorico();
+
         atualizarStatus(caixaResposta, `
             <div class="resumo-stats">
                 <span> <b>${Number(dadosPdf.total_paginas) || 0} páginas</b> no PDF</span>
@@ -278,6 +301,7 @@ async function enviar() {
                 formOllama.append('numero_pagina', pagina.numero);
                 formOllama.append('modo_teste', modoTeste ? '1' : '0');
                 formOllama.append('conversa_id', conversaAtual);
+                formOllama.append('historico_id', historicoAtual);
                 formOllama.append('documento', nomeArquivo);
 
                 const respOllama = await fetchComTimeout('src/service/ollama.php', {
