@@ -1,5 +1,8 @@
 const LIMITE_PAGINAS_TESTE = 5;
 const TEMPO_LIMITE_BLOCO_MS = 180000;
+// O servidor também aplica este intervalo com flock; esta camada evita rajadas na mesma aba.
+const INTERVALO_MINIMO_MS = 2500;
+let ultimoEnvio = 0;
 let controleCancelamento = null;
 let urlPdfAtual = null;
 let conversaAtual = null;
@@ -186,6 +189,15 @@ function limparMarkdown(texto) {
         .trim();
 }
 
+async function garantirIntervalo() {
+    const agora = Date.now();
+    const elapsed = agora - ultimoEnvio;
+    if (elapsed < INTERVALO_MINIMO_MS) {
+        await new Promise(r => setTimeout(r, INTERVALO_MINIMO_MS - elapsed));
+    }
+    ultimoEnvio = Date.now();
+}
+
 async function fetchComTimeout(url, opcoes, tempoLimite, mensagemTimeout) {
     const controladorBloco = new AbortController();
     const sinalPai = opcoes.signal;
@@ -306,6 +318,7 @@ async function enviar() {
                 formIa.append('historico_id', historicoAtual);
                 formIa.append('documento', nomeArquivo);
 
+                await garantirIntervalo();
                 const respIa = await fetchComTimeout('src/service/cenection_ia.php', {
                     method: 'POST', body: formIa, signal: controleCancelamento.signal
                 }, TEMPO_LIMITE_BLOCO_MS, `Tempo limite excedido na página ${pagina.numero}. Bloco ignorado.`);

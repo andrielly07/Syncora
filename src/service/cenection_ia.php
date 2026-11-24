@@ -71,6 +71,57 @@ function salvarResposta(int $usuarioId, int $historicoId, string $conversaId, st
     }
 }
 
+function configuracaoInteira(string $nome, int $padrao, int $minimo, int $maximo): int
+{
+    $valor = $_ENV[$nome] ?? $_SERVER[$nome] ?? getenv($nome);
+    if ($valor === false || $valor === null || $valor === '' || !is_numeric($valor)) {
+        return $padrao;
+    }
+    return max($minimo, min($maximo, (int) $valor));
+}
+
+/**
+ * Reserva atomicamente o próximo horário permitido para iniciar uma chamada.
+ * O lock é compartilhado por requisições concorrentes e por abas diferentes.
+ */
+function aguardarJanelaGemini(string $raizProjeto, string $apiKey, int $intervaloMs): void
+{
+    $identificador = hash('sha256', $raizProjeto . '|' . $apiKey);
+    $arquivoLock = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+        . 'syncora-gemini-rate-limit-' . $identificador . '.lock';
+    $handle = @fopen($arquivoLock, 'c+');
+    if (!$handle) {
+        return;
+    }
+
+    try {
+        if (!flock($handle, LOCK_EX)) {
+            return;
+        }
+
+        rewind($handle);
+        $conteudo = stream_get_contents($handle);
+        $proximoInicio = is_string($conteudo) ? (float) trim($conteudo) : 0.0;
+        $espera = max(0.0, $proximoInicio - microtime(true));
+        if ($espera > 0) {
+            usleep((int) ceil($espera * 1000000));
+        }
+
+        rewind($handle);
+        ftruncate($handle, 0);
+        fwrite($handle, sprintf('%.6f', microtime(true) + ($intervaloMs / 1000)));
+        fflush($handle);
+        flock($handle, LOCK_UN);
+    } finally {
+        fclose($handle);
+    }
+}
+
+function respostaPodeSerTentadaNovamente(int $codigoHttp, bool $falhaCurl): bool
+{
+    return $falhaCurl || in_array($codigoHttp, [408, 425, 429, 500, 502, 503, 504], true);
+}
+
 $usuarioId = usuarioLogado();
 
 $raizProjeto = dirname(__DIR__, 2);
@@ -130,15 +181,10 @@ if ($apiKey === '') {
 }
 
 $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($modelo) . ':generateContent';
-
 $payload = json_encode([
-    'contents' => [
-        [
-            'parts' => [
-                ['text' => $prompt],
-            ],
-        ],
-    ],
+    'contents' => [[
+        'parts' => [['text' => $prompt]],
+    ]],
     'generationConfig' => [
         'temperature' => 0.3,
         'topP' => 0.9,
@@ -150,48 +196,92 @@ if ($payload === false) {
     erroIa(500, 'Não foi possível preparar a requisição para o Gemini.');
 }
 
-$ch = curl_init($endpoint);
-if (!$ch) {
-    erroIa(502, 'Não foi possível inicializar a conexão com o Gemini.');
+// Controle autoritativo no servidor; o frontend continua sequencial, mas não é a única defesa.
+$intervaloMs = configuracaoInteira('GEMINI_INTERVALO_MS', 2500, 250, 60000);
+$maxTentativas = configuracaoInteira('GEMINI_MAX_TENTATIVAS', 4, 1, 6);
+$backoffBaseMs = configuracaoInteira('GEMINI_BACKOFF_BASE_MS', 1500, 250, 30000);
+$respostaBruta = false;
+$codigoHttp = 0;
+$erroCurl = '';
+$mensagemErroGemini = '';
+
+for ($tentativa = 1; $tentativa <= $maxTentativas; $tentativa++) {
+    aguardarJanelaGemini($raizProjeto, $apiKey, $intervaloMs);
+
+    $respostaBruta = false;
+    $codigoHttp = 0;
+    $erroCurl = '';
+    $retryAfterSegundos = null;
+    $ch = curl_init($endpoint);
+    if (!$ch) {
+        $erroCurl = 'Não foi possível inicializar a conexão com o Gemini.';
+        $codigoHttp = 0;
+    } else {
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-goog-api-key: ' . $apiKey,
+            ],
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 180,
+            CURLOPT_HEADERFUNCTION => static function ($curl, string $cabecalho) use (&$retryAfterSegundos): int {
+                if (stripos($cabecalho, 'Retry-After:') === 0) {
+                    $valor = trim(substr($cabecalho, strlen('Retry-After:')));
+                    if (is_numeric($valor)) {
+                        $retryAfterSegundos = max(0, (int) $valor);
+                    }
+                }
+                return strlen($cabecalho);
+            },
+        ]);
+
+        $respostaBruta = curl_exec($ch);
+        $erroCurl = curl_error($ch);
+        $codigoHttp = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+    }
+
+    $falhaCurl = $respostaBruta === false || $erroCurl !== '';
+    $dadosTentativa = is_string($respostaBruta) ? json_decode($respostaBruta, true) : null;
+    if (is_array($dadosTentativa)) {
+        $mensagemErroGemini = (string) ($dadosTentativa['error']['message'] ?? '');
+    }
+
+    if (!$falhaCurl && $codigoHttp < 400 && is_array($dadosTentativa)) {
+        $respostaIa = trim((string) ($dadosTentativa['candidates'][0]['content']['parts'][0]['text'] ?? ''));
+        if ($respostaIa !== '') {
+            salvarResposta($usuarioId, $historicoId, $conversaId, $documento, $numeroPagina, $respostaIa);
+            echo $respostaIa;
+            exit;
+        }
+        $mensagemErroGemini = 'O Gemini não retornou conteúdo.';
+        $codigoHttp = 502;
+    }
+
+    $deveTentar = respostaPodeSerTentadaNovamente($codigoHttp, $falhaCurl)
+        || ($codigoHttp < 400 && !is_array($dadosTentativa));
+    if (!$deveTentar || $tentativa >= $maxTentativas) {
+        break;
+    }
+
+    $backoffMs = $backoffBaseMs * (2 ** ($tentativa - 1));
+    if ($retryAfterSegundos !== null) {
+        $backoffMs = max($backoffMs, $retryAfterSegundos * 1000);
+    }
+    $jitterMs = random_int(0, max(1, (int) floor($backoffMs * 0.25)));
+    usleep(($backoffMs + $jitterMs) * 1000);
 }
 
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => $payload,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => [
-        'Content-Type: application/json',
-        'x-goog-api-key: ' . $apiKey,
-    ],
-    CURLOPT_CONNECTTIMEOUT => 10,
-    CURLOPT_TIMEOUT => 180,
-]);
-
-$respostaBruta = curl_exec($ch);
-$erroCurl = curl_error($ch);
-$codigoHttp = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-if ($respostaBruta === false || $erroCurl !== '') {
-    erroIa(502, $erroCurl !== '' ? $erroCurl : 'Tempo limite excedido ao chamar o Gemini.');
+if ($erroCurl !== '') {
+    erroIa(502, $erroCurl);
 }
-
-$dados = json_decode($respostaBruta, true);
-if (!is_array($dados)) {
-    erroIa(502, 'Resposta inválida recebida do Gemini.');
-}
-
 if ($codigoHttp >= 400) {
-    $mensagemErro = $dados['error']['message'] ?? ('HTTP ' . $codigoHttp);
-    erroIa(502, 'Erro no Gemini (' . $codigoHttp . '): ' . $mensagemErro);
+    $detalhe = $mensagemErroGemini !== '' ? $mensagemErroGemini : ('HTTP ' . $codigoHttp);
+    erroIa(502, 'Erro no Gemini (' . $codigoHttp . ') após ' . $maxTentativas . ' tentativa(s): ' . $detalhe);
 }
-
-$respostaIa = trim((string) ($dados['candidates'][0]['content']['parts'][0]['text'] ?? ''));
-if ($respostaIa === '') {
-    erroIa(502, 'O Gemini não retornou conteúdo.');
-}
-
-salvarResposta($usuarioId, $historicoId, $conversaId, $documento, $numeroPagina, $respostaIa);
-echo $respostaIa;
+erroIa(502, $mensagemErroGemini !== '' ? $mensagemErroGemini : 'Resposta inválida recebida do Gemini após as tentativas configuradas.');
 
 ?>
