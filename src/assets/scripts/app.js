@@ -298,19 +298,19 @@ async function enviar() {
             status.textContent = ` Resumindo página ${pagina.numero} (${progresso})…`;
 
             try {
-                const formOllama = new FormData();
-                formOllama.append('texto_pagina', pagina.texto);
-                formOllama.append('numero_pagina', pagina.numero);
-                formOllama.append('modo_teste', modoTeste ? '1' : '0');
-                formOllama.append('conversa_id', conversaAtual);
-                formOllama.append('historico_id', historicoAtual);
-                formOllama.append('documento', nomeArquivo);
+                const formIa = new FormData();
+                formIa.append('texto_pagina', pagina.texto);
+                formIa.append('numero_pagina', pagina.numero);
+                formIa.append('modo_teste', modoTeste ? '1' : '0');
+                formIa.append('conversa_id', conversaAtual);
+                formIa.append('historico_id', historicoAtual);
+                formIa.append('documento', nomeArquivo);
 
-                const respOllama = await fetchComTimeout('src/service/ollama.php', {
-                    method: 'POST', body: formOllama, signal: controleCancelamento.signal
+                const respIa = await fetchComTimeout('src/service/cenection_ia.php', {
+                    method: 'POST', body: formIa, signal: controleCancelamento.signal
                 }, TEMPO_LIMITE_BLOCO_MS, `Tempo limite excedido na página ${pagina.numero}. Bloco ignorado.`);
-                const textoResumo = (await respOllama.text()).trim();
-                if (!respOllama.ok || !textoResumo || /^\[(?:Erro|Sem resposta)/i.test(textoResumo)) {
+                const textoResumo = (await respIa.text()).trim();
+                if (!respIa.ok || !textoResumo || /^\[(?:Erro|Sem resposta)/i.test(textoResumo)) {
                     throw new Error(textoResumo || `A IA não retornou um resumo para a página ${pagina.numero}.`);
                 }
                 blocos.push({ numero: Number(pagina.numero) || (i + 1), resumo: textoResumo });

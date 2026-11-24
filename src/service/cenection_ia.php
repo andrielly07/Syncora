@@ -120,9 +120,9 @@ $textoPagina
 PROMPT;
 
 $apiKey = trim((string) ($_ENV['GEMINI_API_KEY'] ?? $_SERVER['GEMINI_API_KEY'] ?? getenv('GEMINI_API_KEY') ?? ''));
-$modelo = trim((string) ($_ENV['MODELO_IA'] ?? getenv('MODELO_IA') ?? 'gemini-3.8-flash'));
+$modelo = trim((string) ($_ENV['MODELO_IA'] ?? getenv('MODELO_IA') ?? 'gemini-3.1-flash-lite'));
 if ($modelo === '') {
-    $modelo = 'gemini-3.8-flash';
+    $modelo = 'gemini-3.1-flash-lite';
 }
 
 if ($apiKey === '') {
