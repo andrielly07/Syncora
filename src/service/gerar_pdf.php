@@ -393,6 +393,40 @@ $documento = new DocumentoResumoPdf();
 $documento->definirTitulo($titulo);
 $pdf = $documento->gerar($titulo, $nomeArquivo, $blocos);
 
+// O front Dunwich envia o histórico para permitir o download posterior do
+// resumo. A gravação é opcional para preservar clientes antigos que só
+// esperam o PDF na resposta HTTP.
+$historicoId = filter_var($dados['historico_id'] ?? null, FILTER_VALIDATE_INT);
+if ($historicoId && $historicoId > 0) {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+    $sessao = $_SESSION['user'] ?? null;
+    $usuario = is_string($sessao) ? json_decode($sessao, true) : null;
+    $usuarioId = filter_var($usuario['user_id'] ?? null, FILTER_VALIDATE_INT);
+    if ($usuarioId && $usuarioId > 0) {
+        try {
+            require_once dirname(__DIR__, 2) . '/conection.php';
+            $pdo = conect();
+            $verificar = $pdo->prepare('SELECT historico_id FROM tb_historico WHERE historico_id = :historico_id AND user_id = :user_id');
+            $verificar->execute([':historico_id' => $historicoId, ':user_id' => $usuarioId]);
+            if ($verificar->fetchColumn()) {
+                $pastaResumo = dirname(__DIR__, 2) . '/resumos/usuario_' . $usuarioId;
+                if (!is_dir($pastaResumo)) {
+                    @mkdir($pastaResumo, 0755, true);
+                }
+                if (is_dir($pastaResumo)) {
+                    $arquivoResumo = $pastaResumo . '/resumo_historico_' . $historicoId . '.pdf';
+                    @file_put_contents($arquivoResumo, $pdf, LOCK_EX);
+                }
+            }
+        } catch (Throwable $erro) {
+            // A resposta atual continua funcionando mesmo se o armazenamento
+            // opcional não estiver disponível nesta instalação.
+        }
+    }
+}
+
 $nomeAscii = function_exists('iconv') ? @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $titulo) : $titulo;
 if ($nomeAscii === false || $nomeAscii === '') {
     $nomeAscii = 'resumo-rpg';
