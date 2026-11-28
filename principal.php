@@ -67,7 +67,7 @@ try {
         <input type="checkbox" id="modo-teste" checked>
         Modo de teste: resumir somente as primeiras 5 páginas úteis
       </label>
-      <button class="p botao enviar" type="submit" style="--x:1235;--y:1150;--w:200;--f:18">Enviar
+      <button class="p botao enviar" type="submit" style="--x:1090;--y:1150;--w:500;--f:18">Enviar
         tomo</button>
     </form>
 

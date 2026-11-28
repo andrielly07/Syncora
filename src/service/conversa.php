@@ -10,8 +10,7 @@ function responder(int $status, array $dados): void
 }
 
 $sessao = $_SESSION['user'] ?? null;
-$usuario = is_string($sessao) ? json_decode($sessao, true) : null;
-$usuarioId = filter_var($usuario['user_id'] ?? null, FILTER_VALIDATE_INT);
+$usuarioId = filter_var($sessao['user_id'] ?? null, FILTER_VALIDATE_INT);
 $historicoId = filter_var($_GET['historico_id'] ?? null, FILTER_VALIDATE_INT);
 if (!$usuarioId || !$historicoId) {
     responder(401, ['erro' => 'Sessão ou conversa inválida.']);
@@ -21,7 +20,8 @@ require_once dirname(__DIR__, 2) . '/conection.php';
 
 try {
     $pdo = conect();
-    if (!$pdo instanceof PDO) throw new RuntimeException('Conexão inválida.');
+    if (!$pdo instanceof PDO)
+        throw new RuntimeException('Conexão inválida.');
 
     $stmt = $pdo->prepare(
         'SELECT historico_id, name_file, numbers_page, stored_file_name, created_at
@@ -30,7 +30,8 @@ try {
     );
     $stmt->execute([':historico_id' => $historicoId, ':user_id' => $usuarioId]);
     $historico = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$historico) responder(404, ['erro' => 'Conversa não encontrada.']);
+    if (!$historico)
+        responder(404, ['erro' => 'Conversa não encontrada.']);
 
     $stmt = $pdo->prepare(
         'SELECT message_id, conversation_id, document_name, page_number, role_dif, content, created_at

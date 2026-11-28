@@ -38,12 +38,12 @@ try {
     $stm->bindValue(":user_password", $password);
     $stm->execute();
 
-    $_SESSION['user'] = json_encode([
+    $_SESSION['user'] = [
         "user_id" => (int) $pdo->lastInsertId(),
         "login" => true,
         "username" => $name,
         "email" => $email
-    ], JSON_UNESCAPED_UNICODE);
+    ];
     echo responseMessage(201, "usuário cadastrado com sucesso");
 } catch (PDOException $th) {
     echo responseMessage(500, "erro ao cadastrar usuário");

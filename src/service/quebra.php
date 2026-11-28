@@ -6,8 +6,7 @@ require dirname(__DIR__, 2) . '/vendor/autoload.php';
 function usuarioAtual(): int
 {
     $sessao = $_SESSION['user'] ?? null;
-    $usuario = is_string($sessao) ? json_decode($sessao, true) : null;
-    $id = filter_var($usuario['user_id'] ?? null, FILTER_VALIDATE_INT);
+    $id = filter_var($sessao['user_id'] ?? null, FILTER_VALIDATE_INT);
     if (!$id || $id < 1) {
         http_response_code(401);
         echo json_encode(['erro' => 'Faça login antes de enviar um arquivo.'], JSON_UNESCAPED_UNICODE);
@@ -46,25 +45,39 @@ function salvarArquivoPdf(array $file, int $usuarioId): array
 
 const MIN_CHARS_PAGINA = 80;
 const PALAVRAS_CAPA = [
-    'todos os direitos reservados', 'all rights reserved', 'direitos reservados',
-    'copyright', 'impresso no brasil', 'printed in brazil', 'isbn', 'cnpj',
-    'depósito legal', 'ficha catalográfica', 'dedicatória', 'dedicado a',
-    'aos meus', 'à minha',
+    'todos os direitos reservados',
+    'all rights reserved',
+    'direitos reservados',
+    'copyright',
+    'impresso no brasil',
+    'printed in brazil',
+    'isbn',
+    'cnpj',
+    'depósito legal',
+    'ficha catalográfica',
+    'dedicatória',
+    'dedicado a',
+    'aos meus',
+    'à minha',
 ];
 
 function deveDescartarPagina(string $texto, int $numeroPagina): bool
 {
     $textoLimpo = trim($texto);
     $tamanho = mb_strlen($textoLimpo, 'UTF-8');
-    if ($tamanho === 0) return true;
+    if ($tamanho === 0)
+        return true;
 
     if ($tamanho < MIN_CHARS_PAGINA) {
         $lower = mb_strtolower($textoLimpo, 'UTF-8');
-        if (preg_match('/^[\d\s\-–—]+$/', $textoLimpo)) return true;
+        if (preg_match('/^[\d\s\-–—]+$/', $textoLimpo))
+            return true;
         foreach (PALAVRAS_CAPA as $palavra) {
-            if (mb_strpos($lower, $palavra) !== false) return true;
+            if (mb_strpos($lower, $palavra) !== false)
+                return true;
         }
-        if ($numeroPagina === 1 && $tamanho < 200) return true;
+        if ($numeroPagina === 1 && $tamanho < 200)
+            return true;
     }
 
     $linhas = explode("\n", $textoLimpo);
@@ -72,9 +85,11 @@ function deveDescartarPagina(string $texto, int $numeroPagina): bool
     $linhasComTexto = 0;
     foreach ($linhas as $linha) {
         $linha = trim($linha);
-        if ($linha === '') continue;
+        if ($linha === '')
+            continue;
         $linhasComTexto++;
-        if (preg_match('/(\.\s*){4,}\s*\d+\s*$/', $linha)) $linhasComPontilhado++;
+        if (preg_match('/(\.\s*){4,}\s*\d+\s*$/', $linha))
+            $linhasComPontilhado++;
     }
     return $linhasComTexto > 0 && ($linhasComPontilhado / $linhasComTexto) >= 0.6;
 }

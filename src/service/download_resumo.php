@@ -2,8 +2,7 @@
 session_start();
 
 $sessao = $_SESSION['user'] ?? null;
-$usuario = is_string($sessao) ? json_decode($sessao, true) : null;
-$usuarioId = filter_var($usuario['user_id'] ?? null, FILTER_VALIDATE_INT);
+$usuarioId = filter_var($sessao['user_id'] ?? null, FILTER_VALIDATE_INT);
 $historicoId = filter_var($_GET['historico_id'] ?? null, FILTER_VALIDATE_INT);
 if (!$usuarioId || !$historicoId) {
     http_response_code(401);

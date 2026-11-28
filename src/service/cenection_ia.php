@@ -15,12 +15,11 @@ function erroIa(int $status, string $mensagem): void
 function usuarioLogado(): int
 {
     $sessao = $_SESSION['user'] ?? null;
-    if (!is_string($sessao) || $sessao === '') {
+    if (!isset($sessao) || $sessao === '') {
         erroIa(401, 'Faça login para salvar e consultar suas conversas.');
     }
 
-    $usuario = json_decode($sessao, true);
-    $id = filter_var($usuario['user_id'] ?? null, FILTER_VALIDATE_INT);
+    $id = filter_var($sessao['user_id'] ?? null, FILTER_VALIDATE_INT);
     if (!$id || $id < 1) {
         erroIa(401, 'Sessão de usuário inválida. Faça login novamente.');
     }
@@ -182,9 +181,11 @@ if ($apiKey === '') {
 
 $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($modelo) . ':generateContent';
 $payload = json_encode([
-    'contents' => [[
-        'parts' => [['text' => $prompt]],
-    ]],
+    'contents' => [
+        [
+            'parts' => [['text' => $prompt]],
+        ]
+    ],
     'generationConfig' => [
         'temperature' => 0.3,
         'topP' => 0.9,
