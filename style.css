@@ -277,7 +277,7 @@ input:focus-visible,
 
 /* Feedback do processamento e prévias das respostas da IA. */
 .processamento {
-  height: calc(190 * var(--px));
+  height: calc(280 * var(--px));
   padding: calc(12 * var(--px));
   background: rgba(232, 203, 156, .78);
   overflow: hidden;
@@ -296,7 +296,7 @@ input:focus-visible,
 }
 
 .previas-ia {
-  height: calc(145 * var(--px));
+  height: calc(240 * var(--px));
   overflow-y: auto;
 }
 

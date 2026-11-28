@@ -64,6 +64,12 @@ function adicionarPreviaIA(numeroPagina, progresso, resumo, erro = false) {
   area.scrollTop = area.scrollHeight;
 }
 
+function aguardarRenderizacao() {
+  return new Promise((resolver) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolver));
+  });
+}
+
 function renderizarHistoricoCards(historicos) {
   const area = document.getElementById('historico-lista');
   if (!area) return;
@@ -192,6 +198,7 @@ async function processarTomo(evento) {
       const pagina = paginas[indice];
       const progresso = `${indice + 1}/${paginas.length}`;
       atualizarProcessamento(`Resumindo página ${pagina.numero} (${progresso})…`);
+      await aguardarRenderizacao();
       try {
         const iaForm = new FormData();
         iaForm.append('texto_pagina', pagina.texto);
@@ -210,10 +217,12 @@ async function processarTomo(evento) {
         blocos.push({ numero: pagina.numero, resumo: texto });
         adicionarPreviaIA(pagina.numero, progresso, texto);
         atualizarProcessamento(`Resposta da página ${pagina.numero} recebida. ${indice < paginas.length - 1 ? 'Continuando…' : 'Preparando o PDF final…'}`);
+        await aguardarRenderizacao();
       } catch (erroPagina) {
         blocosIgnorados += 1;
         adicionarPreviaIA(pagina.numero, progresso, erroPagina.message || 'Falha ao resumir esta página.', true);
         atualizarProcessamento(`Página ${pagina.numero} ignorada. ${indice < paginas.length - 1 ? 'Continuando…' : 'Preparando com as respostas válidas…'}`);
+        await aguardarRenderizacao();
       }
     }
     if (!blocos.length) throw new Error('A IA não retornou nenhum resumo válido.');
