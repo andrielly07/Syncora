@@ -53,7 +53,7 @@ try {
       resumi-lo, assim te ajudarei a entender melhor o universo que ali está!</p>
     <img class="p" src="img/ornamento.png" alt="" style="--x:1075;--y:410;--w:520">
     <section id="processamento" class="p processamento" aria-live="polite"
-      style="--x:1042;--y:735;--w:720;--f:13;--lh:1.25">
+      style="--x:1042;--y:920;--w:580;--f:13;--lh:1.25">
       <p id="processamento-status">Escolha um tomo para iniciar a análise.</p>
       <div id="previas-ia" class="previas-ia"></div>
     </section>
@@ -61,13 +61,13 @@ try {
     <!-- Para o back-end: troque action pelo endereço dele e use method="post" enctype="multipart/form-data" para enviar o PDF -->
     <form action="#" method="post" enctype="multipart/form-data">
       <input class="oculto" type="file" id="arquivo" name="tomo" accept=".pdf" required>
-      <label class="p tomo centro" for="arquivo" style="--x:1125;--y:552;--w:420;--f:18"><img src="img/selo.png"
+      <label class="p tomo centro" for="arquivo" style="--x:1125;--y:500;--w:420;--f:18"><img src="img/selo.png"
           alt=""><span>Adicionar um novo tomo</span></label>
-      <label class="p modo-teste" for="modo-teste" style="--x:1042;--y:945;--w:720;--f:12">
+      <label class="p modo-teste" for="modo-teste" style="--x:1042;--y:1140;--w:720;--f:12">
         <input type="checkbox" id="modo-teste" checked>
         Modo de teste: resumir somente as primeiras 5 páginas úteis
       </label>
-      <button class="p botao enviar" type="submit" style="--x:1235;--y:1010;--w:200;--f:18">Enviar
+      <button class="p botao enviar" type="submit" style="--x:1235;--y:1210;--w:200;--f:18">Enviar
         tomo</button>
     </form>
 
