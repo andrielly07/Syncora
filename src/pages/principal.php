@@ -35,18 +35,18 @@ try {
 
     <!-- Página esquerda: usuário e índice de tomos -->
     <p class="p" style="--x:300;--y:303;--w:380;--f:17;--lh:.95">Aqui uma nova<br>história é contada...</p>
-    <img class="p" src="../assets/img/avatar.png" alt="" style="--x:310;--y:388;--w:112">
-    <p class="p" style="--x:440;--y:404;--f:24">
-      <?php echo $usuario['username']; ?>
-    </p>
+    <a class="p usuario-link" href="pagina_usuario.php" aria-label="Abrir página do usuário"
+      style="--x:310;--y:388;--w:112"><img src="../assets/img/avatar.png" alt="Abrir página do usuário"></a>
+    <a class="p usuario-link" href="pagina_usuario.php" style="--x:440;--y:404;--w:330;--f:24">
+      <?php echo htmlspecialchars($usuario['username'], ENT_QUOTES, 'UTF-8'); ?>
+    </a>
     <img class="p" src="../assets/img/ornamento.png" alt="" style="--x:330;--y:518;--w:520">
     <p class="p" style="--x:330;--y:612;--f:16">Índice de tomos:</p>
     <div id="historico-lista" class="p historico-lista" aria-live="polite"
       style="--x:328;--y:648;--w:520;--f:12;--lh:1.25">
       <p>Nenhum tomo processado ainda...</p>
     </div>
-    <a class="p" href="#" style="--x:322;--y:1100;--f:15">Configurações</a>
-    <p class="p" style="--x:625;--y:1100;--f:16">Idioma: Port(BRA)</p>
+    <p class="p" style="--x:322;--y:1100;--f:13">Idioma: Port(BRA)</p>
 
     <!-- Página direita: enviar o tomo -->
     <p class="p" style="--x:1042;--y:312;--w:590;--f:18;--lh:.95">Me envie um livro de regras para que eu possa

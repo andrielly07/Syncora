@@ -44,6 +44,54 @@ async function baixarResumo(evento) {
   }
 }
 
+async function fazerLogout(evento) {
+  evento.preventDefault();
+  try {
+    await lerJson(await fetch(`${API_BASE}auth/logout.php`, {
+      method: 'POST', credentials: 'same-origin'
+    }), 'Não foi possível sair da conta.');
+    window.location.href = 'login.html';
+  } catch (erro) {
+    alert(erro.message || 'Não foi possível sair da conta.');
+  }
+}
+
+async function excluirConta(evento) {
+  evento.preventDefault();
+  if (!window.confirm('Excluir a conta apagará seus históricos, conversas e arquivos. Essa ação não pode ser desfeita. Deseja continuar?')) return;
+  const botao = evento.currentTarget;
+  botao.disabled = true;
+  try {
+    await lerJson(await fetch(`${API_BASE}auth/excluir_conta.php`, {
+      method: 'POST', credentials: 'same-origin'
+    }), 'Não foi possível excluir a conta.');
+    alert('Conta excluída com sucesso.');
+    window.location.href = 'login.html';
+  } catch (erro) {
+    alert(erro.message || 'Não foi possível excluir a conta.');
+    botao.disabled = false;
+  }
+}
+
+async function excluirHistorico(evento) {
+  evento.preventDefault();
+  const botao = evento.currentTarget;
+  if (!window.confirm('Apagar este histórico, conversa e arquivos associados? Essa ação não pode ser desfeita.')) return;
+  botao.disabled = true;
+  const dados = new FormData();
+  dados.append('historico_id', botao.dataset.historicoId || '');
+  try {
+    await lerJson(await fetch(`${API_BASE}excluir_historico.php`, {
+      method: 'POST', body: dados, credentials: 'same-origin'
+    }), 'Não foi possível apagar este histórico.');
+    alert('Histórico apagado com sucesso.');
+    window.location.href = 'principal.php';
+  } catch (erro) {
+    alert(erro.message || 'Não foi possível apagar este histórico.');
+    botao.disabled = false;
+  }
+}
+
 function escapar(texto) {
   return String(texto ?? '').replace(/[&<>"']/g, (caractere) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -162,6 +210,7 @@ async function carregarHistoricoCompleto() {
       <p>${escapar(historico.numbers_page || 0)} páginas · criado em ${dataCurta(historico.created_at)}</p>
       <div class="historico-acoes">
         <a class="historico-acao" data-download-resumo="true" data-nome-download="resumo-rpg.pdf" href="${API_BASE}download_resumo.php?historico_id=${encodeURIComponent(historicoId)}">Baixar resumo em PDF</a>
+        <button class="historico-acao historico-acao-perigo" type="button" data-excluir-historico="true" data-historico-id="${encodeURIComponent(historicoId)}">Apagar histórico</button>
         <a class="historico-acao" href="${API_BASE}download.php?historico_id=${encodeURIComponent(historicoId)}">Baixar tomo original</a>
       </div>
       <h3>Resumos por página</h3>
@@ -169,6 +218,8 @@ async function carregarHistoricoCompleto() {
     `;
     const linkResumo = area.querySelector('[data-download-resumo="true"]');
     if (linkResumo) linkResumo.addEventListener('click', baixarResumo);
+    const botaoExcluir = area.querySelector('[data-excluir-historico="true"]');
+    if (botaoExcluir) botaoExcluir.addEventListener('click', excluirHistorico);
   } catch (erro) {
     area.innerHTML = `<p>${escapar(erro.message)}</p>`;
   }
@@ -346,6 +397,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const envio = arquivo?.closest('form') || document.querySelector('form[action="resumo.html"]');
   if (cadastro) { cadastro.addEventListener('submit', enviarCadastro); cadastro.action = '#'; cadastro.method = 'post'; }
   if (envio) { envio.addEventListener('submit', processarTomo); envio.action = '#'; envio.method = 'post'; envio.enctype = 'multipart/form-data'; }
+  const botaoLogout = document.getElementById('logout');
+  if (botaoLogout) botaoLogout.addEventListener('click', fazerLogout);
+  const botaoExcluirConta = document.getElementById('excluir-conta');
+  if (botaoExcluirConta) botaoExcluirConta.addEventListener('click', excluirConta);
   if (arquivo && nomeTomo) {
     arquivo.addEventListener('change', () => {
       nomeTomo.textContent = arquivo.files?.[0]?.name || 'Adicionar um novo tomo';

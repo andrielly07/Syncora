@@ -81,6 +81,78 @@ a:hover {
   text-decoration: underline;
 }
 
+.usuario-link {
+  display: block;
+  cursor: pointer;
+}
+
+.usuario-link img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.usuario-link:hover {
+  text-decoration: underline;
+}
+
+.usuario-nome,
+.usuario-email,
+.usuario-instrução {
+  text-align: center;
+}
+
+.usuario-voltar:hover {
+  text-decoration: underline;
+}
+
+.pagina-usuario .usuario-titulo,
+.pagina-usuario .usuario-avatar,
+.pagina-usuario .usuario-nome,
+.pagina-usuario .usuario-email,
+.pagina-usuario .usuario-instrução {
+  text-align: center;
+}
+
+.pagina-usuario .usuario-acoes {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: calc(20 * var(--px));
+}
+
+.pagina-usuario .usuario-acoes .conta-acao {
+  position: static;
+  flex: 1 1 0;
+  width: auto;
+  height: calc(70 * var(--px));
+  padding: 0 calc(10 * var(--px));
+  border: 0;
+  color: #fff4dc;
+  font: inherit;
+  font-size: calc(13 * var(--px));
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.pagina-usuario .usuario-acao-sair {
+  background: #6d4c7d;
+  box-shadow: 0 calc(8 * var(--px)) 0 #3f2a4a;
+}
+
+.pagina-usuario .usuario-acao-sair:hover {
+  background: #805b92;
+}
+
+.pagina-usuario .usuario-acao-excluir {
+  background: #8f3434;
+  box-shadow: 0 calc(8 * var(--px)) 0 #5c1814;
+}
+
+.pagina-usuario .usuario-acao-excluir:hover {
+  background: #a64040;
+}
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -112,6 +184,23 @@ input:focus-visible,
 .botao-secundario:hover {
   background: #805b92;
   text-decoration: none;
+}
+
+.conta-acao {
+  border: 0;
+  padding: 0 calc(8 * var(--px));
+  font-size: calc(12 * var(--px));
+  cursor: pointer;
+}
+
+.historico-acao {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.historico-acao-perigo {
+  background: #6d2730;
 }
 
 .navegacao {
