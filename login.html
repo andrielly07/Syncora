@@ -1,20 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dunwich – Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <script src="./src/assets/scripts/auth.js" defer></script>
 </head>
 
 <body>
-    <form method="post" id="form">
-        <input type="email" name="email" id="" required>
-        <input type="password" name="password" id="" required>
-        <input type="text" name="type" value="login" hidden>
-        <button type="submit">Logar</button>
-    </form>
+    <div class="palco">
+        <img class="p" src="img/livro.png" alt="" style="--x:894;--y:22;--w:3080">
+        <p class="p creme" style="--x:90;--y:62;--w:800;--f:38;--lh:1">Seja bem-vindo(a) de volta</p>
+        <img class="p" src="img/logo.png" alt="Dunwich" style="--x:50;--y:290;--w:820">
+        <p class="p creme" style="--x:90;--y:868;--w:780;--f:38;--lh:1.05">Faça login para continuar sua jornada RPG</p>
+
+        <p class="p creme" style="--x:160;--y:1394;--f:21">Desenvolvido por Syncora 2026</p>
+
+        <form method="post" id="form">
+            <label class="p" for="email" style="--x:1280;--y:700;--f:24">Email:</label>
+            <input class="p campo" id="email" name="email" type="email" required style="--x:1280;--y:745;--w:948">
+            <label class="p" for="password" style="--x:1280;--y:875;--f:24">Senha:</label>
+            <input class="p campo" id="password" name="password" type="password" required
+                style="--x:1280;--y:920;--w:948">
+            <input type="text" name="type" value="login" hidden>
+            <button class="p botao" type="submit" style="--x:1280;--y:1005;--w:948">Login</button>
+        </form>
+
+        <a class="p botao botao-secundario navegacao centro" href="cadastro.html"
+            style="--x:1280;--y:1082;--w:948">Criar uma conta</a>
+    </div>
 </body>
 
 </html>

@@ -89,17 +89,6 @@ input:focus-visible,
   outline-offset: calc(4 * var(--px));
 }
 
-/* Formulário de cadastro */
-.campo {
-  height: calc(76 * var(--px));
-  padding: 0 calc(24 * var(--px));
-  border: 0;
-  background: #e8cb9c;
-  color: var(--tinta);
-  font: inherit;
-  font-size: calc(28 * var(--px));
-}
-
 .botao {
   height: calc(70 * var(--px));
   border: 0;
@@ -109,6 +98,25 @@ input:focus-visible,
   font-size: calc(28 * var(--px));
   box-shadow: 0 calc(8 * var(--px)) 0 #5c1814;
   cursor: pointer;
+}
+
+.botao-secundario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #6d4c7d;
+  color: #fff4dc;
+  box-shadow: 0 calc(8 * var(--px)) 0 #3f2a4a;
+}
+
+.botao-secundario:hover {
+  background: #805b92;
+  text-decoration: none;
+}
+
+.navegacao {
+  height: calc(45 * var(--px));
+  font-size: calc(18 * var(--px));
 }
 
 .oculto {
