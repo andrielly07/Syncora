@@ -1,12 +1,20 @@
 <?php
 session_start();
 
+function erroDownloadResumo(int $status, string $mensagem): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['erro' => $mensagem], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 $sessao = $_SESSION['user'] ?? null;
+$sessao = is_string($sessao) ? json_decode($sessao, true) : $sessao;
 $usuarioId = filter_var($sessao['user_id'] ?? null, FILTER_VALIDATE_INT);
 $historicoId = filter_var($_GET['historico_id'] ?? null, FILTER_VALIDATE_INT);
 if (!$usuarioId || !$historicoId) {
-    http_response_code(401);
-    exit('Faça login para baixar este resumo.');
+    erroDownloadResumo(401, 'Faça login para baixar este resumo.');
 }
 
 require_once '../config/conection.php';
@@ -23,8 +31,7 @@ try {
     $stmt->execute([':historico_id' => $historicoId, ':user_id' => $usuarioId]);
     $historico = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$historico) {
-        http_response_code(404);
-        exit('Histórico não encontrado.');
+        erroDownloadResumo(404, 'Histórico não encontrado.');
     }
 
     $raizProjeto = realpath(dirname(__DIR__, 2));
@@ -34,8 +41,7 @@ try {
         !$raizProjeto || !$pastaPermitida || !$caminho || !is_file($caminho)
         || strpos($caminho, $pastaPermitida . DIRECTORY_SEPARATOR) !== 0
     ) {
-        http_response_code(404);
-        exit('Resumo ainda não está disponível para download.');
+        erroDownloadResumo(404, 'Resumo ainda não está disponível para download. Gere o resumo novamente para criar o arquivo.');
     }
 
     $base = pathinfo((string) $historico['name_file'], PATHINFO_FILENAME);
@@ -47,6 +53,5 @@ try {
     header('Cache-Control: private, no-store');
     readfile($caminho);
 } catch (Throwable $erro) {
-    http_response_code(500);
-    exit('Não foi possível baixar o resumo.');
+    erroDownloadResumo(500, 'Não foi possível baixar o resumo. Tente novamente em instantes.');
 }

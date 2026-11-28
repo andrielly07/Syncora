@@ -76,7 +76,7 @@ async function carregarConversa() {
     }
 
     try {
-        const resposta = await fetch(`src/service/conversa.php?historico_id=${encodeURIComponent(historicoId)}`, {
+        const resposta = await fetch(`../service/conversa.php?historico_id=${encodeURIComponent(historicoId)}`, {
             credentials: 'same-origin'
         });
         const dados = await resposta.json();
@@ -86,7 +86,7 @@ async function carregarConversa() {
         document.getElementById('resumo-conversa').textContent = `${dados.historico.numbers_page} páginas · criado ${new Date(dados.historico.created_at).toLocaleDateString('pt-BR')}`;
         const linkDownload = document.createElement('a');
         linkDownload.className = 'link-download';
-        linkDownload.href = `src/service/download.php?historico_id=${encodeURIComponent(historicoId)}`;
+        linkDownload.href = `../service/download.php?historico_id=${encodeURIComponent(historicoId)}`;
         linkDownload.textContent = `Baixar arquivo original (${dados.historico.stored_file_name})`;
         document.getElementById('resumo-conversa').after(linkDownload);
         container.innerHTML = '';

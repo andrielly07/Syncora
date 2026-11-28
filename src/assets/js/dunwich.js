@@ -10,6 +10,40 @@ function lerJson(response, mensagem) {
   });
 }
 
+async function baixarResumo(evento) {
+  evento.preventDefault();
+  const link = evento.currentTarget;
+  try {
+    const resposta = await fetch(link.href, { credentials: 'same-origin' });
+    const tipo = resposta.headers.get('content-type') || '';
+    if (!resposta.ok || !tipo.includes('application/pdf')) {
+      const corpo = await resposta.text();
+      let mensagem = 'O resumo não está disponível para download.';
+      try {
+        const dados = JSON.parse(corpo);
+        mensagem = dados.erro || dados.message || mensagem;
+      } catch (erroLeitura) {
+        if (corpo.trim()) mensagem = corpo.trim();
+      }
+      throw new Error(mensagem);
+    }
+    const arquivo = await resposta.blob();
+    const urlTemporaria = URL.createObjectURL(arquivo);
+    const a = document.createElement('a');
+    a.href = urlTemporaria;
+    a.download = link.dataset.nomeDownload || 'resumo-rpg.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(urlTemporaria), 1000);
+  } catch (erro) {
+    const detalhe = erro.message && erro.message !== 'O resumo não está disponível para download.'
+      ? `\n${erro.message}`
+      : '';
+    alert(`O resumo não está disponível para download.${detalhe}`);
+  }
+}
+
 function escapar(texto) {
   return String(texto ?? '').replace(/[&<>"']/g, (caractere) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -127,12 +161,14 @@ async function carregarHistoricoCompleto() {
       <h2>${escapar(historico.name_file || 'Histórico do tomo')}</h2>
       <p>${escapar(historico.numbers_page || 0)} páginas · criado em ${dataCurta(historico.created_at)}</p>
       <div class="historico-acoes">
-        <a class="historico-acao" href="${API_BASE}download_resumo.php?historico_id=${encodeURIComponent(historicoId)}">Baixar resumo em PDF</a>
+        <a class="historico-acao" data-download-resumo="true" data-nome-download="resumo-rpg.pdf" href="${API_BASE}download_resumo.php?historico_id=${encodeURIComponent(historicoId)}">Baixar resumo em PDF</a>
         <a class="historico-acao" href="${API_BASE}download.php?historico_id=${encodeURIComponent(historicoId)}">Baixar tomo original</a>
       </div>
       <h3>Resumos por página</h3>
       ${renderizarMensagens(dados.mensagens || [])}
     `;
+    const linkResumo = area.querySelector('[data-download-resumo="true"]');
+    if (linkResumo) linkResumo.addEventListener('click', baixarResumo);
   } catch (erro) {
     area.innerHTML = `<p>${escapar(erro.message)}</p>`;
   }
@@ -232,16 +268,34 @@ async function processarTomo(evento) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ titulo: arquivo.name, paginas: blocos, historico_id: historico.historico_id }), credentials: 'same-origin'
     });
-    if (!respostaPdf.ok) throw new Error('Não foi possível gerar o PDF de resumo.');
+    if (!respostaPdf.ok) {
+      const corpoErro = await respostaPdf.text();
+      let mensagemErro = 'Não foi possível gerar o PDF de resumo.';
+      try {
+        const dadosErro = JSON.parse(corpoErro);
+        mensagemErro = dadosErro.erro || dadosErro.message || mensagemErro;
+      } catch (erroLeitura) {
+        if (corpoErro) mensagemErro = corpoErro.replace(/<[^>]*>/g, ' ').trim() || mensagemErro;
+      }
+      throw new Error(mensagemErro);
+    }
+    const tipoPdf = respostaPdf.headers.get('content-type') || '';
+    if (!tipoPdf.includes('application/pdf')) {
+      throw new Error('O servidor não retornou um PDF válido para o resumo.');
+    }
     const pdfBlob = await respostaPdf.blob();
-    const pdfDataUrl = await new Promise((resolve) => {
-      const leitor = new FileReader();
-      leitor.onload = () => resolve(leitor.result);
-      leitor.onerror = () => resolve('');
-      leitor.readAsDataURL(pdfBlob);
-    });
+    let pdfDataUrl = '';
+    if (pdfBlob.size <= 1500000) {
+      pdfDataUrl = await new Promise((resolve) => {
+        const leitor = new FileReader();
+        leitor.onload = () => resolve(leitor.result);
+        leitor.onerror = () => resolve('');
+        leitor.readAsDataURL(pdfBlob);
+      });
+    }
     sessionStorage.setItem('dunwichResumo', JSON.stringify({
       nome: arquivo.name, blocos, pdfDataUrl,
+      historicoId: Number(historico.historico_id) || 0,
       pdfNome: `${nomeSeguro(arquivo.name.replace(/\.pdf$/i, ''))}-resumo.pdf`,
       modoTeste, paginasProcessadas: paginas.length, paginasIgnoradas: blocosIgnorados
     }));
@@ -263,11 +317,20 @@ function renderizarResumo() {
     const dados = JSON.parse(bruto);
     const fragmento = dados.blocos.map((bloco) => `<p><strong>Página ${escapar(bloco.numero)}</strong></p><p>${escapar(textoResumo(bloco.resumo)).replace(/\n/g, '<br>')}</p>`).join('');
     area.innerHTML = fragmento || '<p>O resumo está vazio.</p>';
-    const seta = document.querySelector('a[aria-label="Próxima página"]');
-    if (seta && dados.pdfDataUrl) {
+    const seta = document.querySelector('#baixar-resumo, a[aria-label="Baixar resumo em PDF"]');
+    if (seta && dados.historicoId) {
+      seta.href = `${API_BASE}download_resumo.php?historico_id=${encodeURIComponent(dados.historicoId)}`;
+      seta.removeAttribute('download');
+      seta.dataset.nomeDownload = dados.pdfNome || 'resumo-rpg.pdf';
+      seta.title = 'Baixar o resumo em PDF';
+      seta.onclick = baixarResumo;
+    } else if (seta && dados.pdfDataUrl) {
       seta.href = dados.pdfDataUrl;
       seta.download = dados.pdfNome || 'resumo-rpg.pdf';
       seta.title = 'Baixar o resumo em PDF';
+    } else if (seta) {
+      seta.removeAttribute('href');
+      seta.title = 'Resumo ainda não disponível para download';
     }
     const introducao = document.querySelector('.palco > p');
     if (introducao && dados.nome) introducao.textContent = `Aqui está um resumo completo do tomo ${dados.nome} que você me enviou, folheie as páginas e descubra o essencial!`;

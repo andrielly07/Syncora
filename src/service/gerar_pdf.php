@@ -394,36 +394,39 @@ $documento->definirTitulo($titulo);
 $pdf = $documento->gerar($titulo, $nomeArquivo, $blocos);
 
 // O front Dunwich envia o histórico para permitir o download posterior do
-// resumo. A gravação é opcional para preservar clientes antigos que só
-// esperam o PDF na resposta HTTP.
+// resumo. Quando esse identificador é enviado, a persistência é obrigatória:
+// sem ela o usuário receberia um PDF que depois não poderia baixar pelo histórico.
 $historicoId = filter_var($dados['historico_id'] ?? null, FILTER_VALIDATE_INT);
 if ($historicoId && $historicoId > 0) {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
     $sessao = $_SESSION['user'] ?? null;
-    $usuario = is_string($sessao) ? json_decode($sessao, true) : null;
+    $usuario = is_array($sessao)
+        ? $sessao
+        : (is_string($sessao) ? json_decode($sessao, true) : null);
     $usuarioId = filter_var($usuario['user_id'] ?? null, FILTER_VALIDATE_INT);
-    if ($usuarioId && $usuarioId > 0) {
-        try {
-            require_once dirname(__DIR__) . '/config/conection.php';
-            $pdo = conect();
-            $verificar = $pdo->prepare('SELECT historico_id FROM tb_historico WHERE historico_id = :historico_id AND user_id = :user_id');
-            $verificar->execute([':historico_id' => $historicoId, ':user_id' => $usuarioId]);
-            if ($verificar->fetchColumn()) {
-                $pastaResumo = dirname(__DIR__, 2) . '/resumos/usuario_' . $usuarioId;
-                if (!is_dir($pastaResumo)) {
-                    @mkdir($pastaResumo, 0755, true);
-                }
-                if (is_dir($pastaResumo)) {
-                    $arquivoResumo = $pastaResumo . '/resumo_historico_' . $historicoId . '.pdf';
-                    @file_put_contents($arquivoResumo, $pdf, LOCK_EX);
-                }
-            }
-        } catch (Throwable $erro) {
-            // A resposta atual continua funcionando mesmo se o armazenamento
-            // opcional não estiver disponível nesta instalação.
+    if (!$usuarioId || $usuarioId < 1) {
+        responderErroPdf(401, 'Sua sessão expirou. Faça login novamente antes de gerar o resumo.');
+    }
+    try {
+        require_once dirname(__DIR__) . '/config/conection.php';
+        $pdo = conect();
+        $verificar = $pdo->prepare('SELECT historico_id FROM tb_historico WHERE historico_id = :historico_id AND user_id = :user_id');
+        $verificar->execute([':historico_id' => $historicoId, ':user_id' => $usuarioId]);
+        if (!$verificar->fetchColumn()) {
+            responderErroPdf(404, 'O histórico deste tomo não foi encontrado para o usuário atual.');
         }
+        $pastaResumo = dirname(__DIR__, 2) . '/resumos/usuario_' . $usuarioId;
+        if (!is_dir($pastaResumo) && !@mkdir($pastaResumo, 0755, true)) {
+            responderErroPdf(500, 'Não foi possível criar a pasta de armazenamento do resumo.');
+        }
+        $arquivoResumo = $pastaResumo . '/resumo_historico_' . $historicoId . '.pdf';
+        if (@file_put_contents($arquivoResumo, $pdf, LOCK_EX) === false) {
+            responderErroPdf(500, 'O PDF foi gerado, mas não pôde ser salvo para download posterior.');
+        }
+    } catch (Throwable $erro) {
+        responderErroPdf(500, 'Não foi possível salvar o resumo para download posterior.');
     }
 }
 
