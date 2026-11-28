@@ -1,3 +1,21 @@
+<?php
+require "./conection.php";
+session_start();
+$user = $_SESSION['user'];
+
+try {
+  $sql = "SELECT * FROM tb_usuario WHERE user_id = :user_id";
+
+  $stm = conect()->prepare($sql);
+  $stm->bindValue(":user_id", $user['user_id']);
+  $stm->execute();
+
+  $usuario = $stm->fetch(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+  echo $e->getMessage();
+}
+?>
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -18,7 +36,9 @@
     <!-- Página esquerda: usuário e índice de tomos -->
     <p class="p" style="--x:300;--y:303;--w:380;--f:17;--lh:.95">Aqui uma nova<br>história é contada...</p>
     <img class="p" src="img/avatar.png" alt="" style="--x:310;--y:388;--w:112">
-    <p class="p" style="--x:440;--y:404;--f:24">Nome do usuário</p>
+    <p class="p" style="--x:440;--y:404;--f:24">
+      <?php echo $usuario['username']; ?>
+    </p>
     <img class="p" src="img/ornamento.png" alt="" style="--x:330;--y:518;--w:520">
     <p class="p" style="--x:330;--y:612;--f:16">Índice de tomos:</p>
     <div id="historico-lista" class="p historico-lista" aria-live="polite"

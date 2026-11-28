@@ -21,10 +21,10 @@ try {
 
     unset($usuario->user_password);
 
-    $_SESSION['user'] = json_encode([
+    $_SESSION['user'] = [
         "user_id" => $usuario->user_id,
         "login" => true
-    ]);
+    ];
 
     echo responseMessage(200, "login feito com sucesso");
 } catch (\PDOException $th) {

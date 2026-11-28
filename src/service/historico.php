@@ -10,8 +10,7 @@ function responder(int $status, array $dados): void
 }
 
 $sessao = $_SESSION['user'] ?? null;
-$usuario = is_string($sessao) ? json_decode($sessao, true) : null;
-$usuarioId = filter_var($usuario['user_id'] ?? null, FILTER_VALIDATE_INT);
+$usuarioId = filter_var($sessao['user_id'] ?? null, FILTER_VALIDATE_INT);
 if (!$usuarioId || $usuarioId < 1) {
     responder(401, ['erro' => 'Faça login para consultar seu histórico.']);
 }
@@ -20,7 +19,8 @@ require_once dirname(__DIR__, 2) . '/conection.php';
 
 try {
     $pdo = conect();
-    if (!$pdo instanceof PDO) throw new RuntimeException('Conexão inválida.');
+    if (!$pdo instanceof PDO)
+        throw new RuntimeException('Conexão inválida.');
 
     $stmt = $pdo->prepare(
         'SELECT h.historico_id, h.name_file, h.numbers_page, h.created_at,
