@@ -269,9 +269,16 @@ function renderizarResumo() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const cadastro = document.querySelector('form[action="principal.html"]');
-  const envio = document.querySelector('form[action="resumo.html"]');
+  const arquivo = document.getElementById('arquivo');
+  const nomeTomo = document.getElementById('tomo-name');
+  const envio = arquivo?.closest('form') || document.querySelector('form[action="resumo.html"]');
   if (cadastro) { cadastro.addEventListener('submit', enviarCadastro); cadastro.action = '#'; cadastro.method = 'post'; }
   if (envio) { envio.addEventListener('submit', processarTomo); envio.action = '#'; envio.method = 'post'; envio.enctype = 'multipart/form-data'; }
+  if (arquivo && nomeTomo) {
+    arquivo.addEventListener('change', () => {
+      nomeTomo.textContent = arquivo.files?.[0]?.name || 'Adicionar um novo tomo';
+    });
+  }
   carregarHistoricoCards();
   carregarHistoricoCompleto();
   renderizarResumo();
