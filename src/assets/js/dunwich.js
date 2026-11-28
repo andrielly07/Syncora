@@ -73,6 +73,44 @@ async function excluirConta(evento) {
   }
 }
 
+async function atualizarUsuario(evento) {
+  evento.preventDefault();
+  const formulario = evento.currentTarget;
+  const botao = formulario.querySelector('button[type="submit"]');
+  const feedback = document.getElementById('usuario-feedback');
+  if (botao) {
+    botao.disabled = true;
+    botao.textContent = 'Salvando…';
+  }
+  try {
+    const resposta = await lerJson(await fetch(`${API_BASE}auth/atualizar_usuario.php`, {
+      method: 'POST', body: new FormData(formulario), credentials: 'same-origin'
+    }), 'Não foi possível atualizar seus dados.');
+    const usuario = resposta.usuario || {};
+    const nome = usuario.username || formulario.elements.nome.value;
+    const email = usuario.email || formulario.elements.email.value;
+    const nomeAtual = document.getElementById('usuario-nome-atual');
+    const emailAtual = document.getElementById('usuario-email-atual');
+    if (nomeAtual) nomeAtual.textContent = nome;
+    if (emailAtual) emailAtual.textContent = email;
+    if (feedback) {
+      feedback.textContent = 'Dados atualizados com sucesso.';
+      feedback.className = 'usuario-feedback sucesso';
+    }
+  } catch (erro) {
+    if (feedback) {
+      feedback.textContent = erro.message || 'Não foi possível atualizar seus dados.';
+      feedback.className = 'usuario-feedback erro';
+    }
+    alert(erro.message || 'Não foi possível atualizar seus dados.');
+  } finally {
+    if (botao) {
+      botao.disabled = false;
+      botao.textContent = 'Salvar alterações';
+    }
+  }
+}
+
 async function excluirHistorico(evento) {
   evento.preventDefault();
   const botao = evento.currentTarget;
@@ -401,6 +439,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (botaoLogout) botaoLogout.addEventListener('click', fazerLogout);
   const botaoExcluirConta = document.getElementById('excluir-conta');
   if (botaoExcluirConta) botaoExcluirConta.addEventListener('click', excluirConta);
+  const formularioUsuario = document.getElementById('form-usuario');
+  if (formularioUsuario) formularioUsuario.addEventListener('submit', atualizarUsuario);
   if (arquivo && nomeTomo) {
     arquivo.addEventListener('change', () => {
       nomeTomo.textContent = arquivo.files?.[0]?.name || 'Adicionar um novo tomo';

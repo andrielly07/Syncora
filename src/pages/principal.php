@@ -38,7 +38,7 @@ try {
     <a class="p usuario-link" href="pagina_usuario.php" aria-label="Abrir página do usuário"
       style="--x:310;--y:388;--w:112"><img src="../assets/img/avatar.png" alt="Abrir página do usuário"></a>
     <a class="p usuario-link" href="pagina_usuario.php" style="--x:440;--y:404;--w:330;--f:24">
-      <?php echo htmlspecialchars($usuario['username'], ENT_QUOTES, 'UTF-8'); ?>
+      <?php echo $usuario['username']; ?>
     </a>
     <img class="p" src="../assets/img/ornamento.png" alt="" style="--x:330;--y:518;--w:520">
     <p class="p" style="--x:330;--y:612;--f:16">Índice de tomos:</p>
@@ -61,13 +61,13 @@ try {
     <!-- Para o back-end -->
     <form>
       <input class="oculto" type="file" id="arquivo" name="tomo" accept=".pdf" required>
-      <label class="p tomo centro" for="arquivo" style="--x:1125;--y:470;--w:420;--f:18"><img src="../assets/img/selo.png"
-          alt=""><span id="tomo-name">Adicionar um novo tomo</span></label>
-      <label class="p modo-teste" for="modo-teste" style="--x:1042;--y:1200;--w:520;--f:12">
+      <label class="p tomo centro" for="arquivo" style="--x:1125;--y:470;--w:420;--f:18"><img
+          src="../assets/img/selo.png" alt=""><span id="tomo-name">Adicionar um novo tomo</span></label>
+      <label class="p modo-teste" for="modo-teste" style="--x:1042;--y:1120;--w:520;--f:12">
         <input type="checkbox" id="modo-teste" checked>
         Modo de teste: resumir somente as primeiras 5 páginas úteis
       </label>
-      <button class="p botao enviar" type="submit" style="--x:1090;--y:1230;--w:500;--f:18">Enviar
+      <button class="p botao enviar" type="submit" style="--x:1090;--y:1170;--w:500;--f:18">Enviar
         tomo</button>
     </form>
 
