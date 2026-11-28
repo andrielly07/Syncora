@@ -406,7 +406,7 @@ if ($historicoId && $historicoId > 0) {
     $usuarioId = filter_var($usuario['user_id'] ?? null, FILTER_VALIDATE_INT);
     if ($usuarioId && $usuarioId > 0) {
         try {
-            require_once dirname(__DIR__, 2) . '/conection.php';
+            require_once dirname(__DIR__) . '/config/conection.php';
             $pdo = conect();
             $verificar = $pdo->prepare('SELECT historico_id FROM tb_historico WHERE historico_id = :historico_id AND user_id = :user_id');
             $verificar->execute([':historico_id' => $historicoId, ':user_id' => $usuarioId]);

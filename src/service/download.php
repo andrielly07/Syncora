@@ -9,7 +9,7 @@ if (!$usuarioId || !$historicoId) {
     exit('Faça login para baixar este arquivo.');
 }
 
-require_once '../../conection.php';
+require_once '../config/conection.php';
 
 try {
     $pdo = conect();

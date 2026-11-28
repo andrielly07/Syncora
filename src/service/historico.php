@@ -15,7 +15,7 @@ if (!$usuarioId || $usuarioId < 1) {
     responder(401, ['erro' => 'Faça login para consultar seu histórico.']);
 }
 
-require_once dirname(__DIR__, 2) . '/conection.php';
+require_once dirname(__DIR__) . '/config/conection.php';
 
 try {
     $pdo = conect();

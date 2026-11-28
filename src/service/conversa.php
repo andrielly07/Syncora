@@ -16,7 +16,7 @@ if (!$usuarioId || !$historicoId) {
     responder(401, ['erro' => 'Sessão ou conversa inválida.']);
 }
 
-require_once dirname(__DIR__, 2) . '/conection.php';
+require_once dirname(__DIR__) . '/config/conection.php';
 
 try {
     $pdo = conect();

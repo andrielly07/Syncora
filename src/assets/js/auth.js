@@ -7,8 +7,8 @@ if (form) {
         const formData = new FormData(e.target)
         const type = formData.get('type')
         const endpoint = type === 'create'
-            ? './src/service/auth/cadastro.php'
-            : './src/service/auth/login.php'
+            ? '../service/auth/cadastro.php'
+            : '../service/auth/login.php'
 
         try {
             const response = await fetch(endpoint, {

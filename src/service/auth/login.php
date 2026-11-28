@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
-require '../../../conection.php';
+require '../../config/conection.php';
 session_start();
 
 $email = $_POST['email'] ?? '';

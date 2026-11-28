@@ -47,7 +47,7 @@ async function carregarHistorico() {
     const container = document.getElementById('historico-chat');
     if (!container) return;
     try {
-        const resposta = await fetch('src/service/historico.php', { credentials: 'same-origin' });
+        const resposta = await fetch('../service/historico.php', { credentials: 'same-origin' });
         const dados = await resposta.json();
 
         if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível carregar o histórico.');
@@ -261,7 +261,7 @@ async function enviar() {
     try {
         const formPdf = new FormData();
         formPdf.append('rpg_pdf', arquivo);
-        const respQuebra = await fetch('src/service/quebra.php', {
+        const respQuebra = await fetch('../service/quebra.php', {
             method: 'POST', body: formPdf, signal: controleCancelamento.signal
         });
 
@@ -277,7 +277,7 @@ async function enviar() {
         formHistorico.append('numbers_page', dadosPdf.total_paginas || paginasEncontradas.length);
         formHistorico.append('stored_file_name', dadosPdf.arquivo_salvo?.nome || '');
         formHistorico.append('stored_file_path', dadosPdf.arquivo_salvo?.caminho || '');
-        const respHistorico = await fetch('src/service/criar_historico.php', {
+        const respHistorico = await fetch('../service/criar_historico.php', {
             method: 'POST',
             body: formHistorico,
             credentials: 'same-origin',
@@ -319,7 +319,7 @@ async function enviar() {
                 formIa.append('documento', nomeArquivo);
 
                 await garantirIntervalo();
-                const respIa = await fetchComTimeout('src/service/cenection_ia.php', {
+                const respIa = await fetchComTimeout('../service/cenection_ia.php', {
                     method: 'POST', body: formIa, signal: controleCancelamento.signal
                 }, TEMPO_LIMITE_BLOCO_MS, `Tempo limite excedido na página ${pagina.numero}. Bloco ignorado.`);
                 const textoResumo = (await respIa.text()).trim();
@@ -346,7 +346,7 @@ async function enviar() {
         }
 
         status.textContent = ' Compilando os resumos em um único arquivo PDF…';
-        const respPdf = await fetch('src/service/gerar_pdf.php', {
+        const respPdf = await fetch('../service/gerar_pdf.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify({ titulo: nomeArquivo, paginas: blocos }),

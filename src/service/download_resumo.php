@@ -9,7 +9,7 @@ if (!$usuarioId || !$historicoId) {
     exit('Faça login para baixar este resumo.');
 }
 
-require_once '../../conection.php';
+require_once '../config/conection.php';
 try {
     $pdo = conect();
     if (!$pdo instanceof PDO) {

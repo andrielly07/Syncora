@@ -38,7 +38,7 @@ function validarConversa(string $valor): string
 
 function salvarResposta(int $usuarioId, int $historicoId, string $conversaId, string $documento, int $pagina, string $resposta): void
 {
-    require_once dirname(__DIR__, 2) . '/conection.php';
+    require_once dirname(__DIR__) . '/config/conection.php';
 
     try {
         $pdo = conect();

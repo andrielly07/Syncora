@@ -1,4 +1,4 @@
-const API_BASE = './src/service/';
+const API_BASE = '../service/';
 const LIMITE_PAGINAS_TESTE = 5;
 
 function lerJson(response, mensagem) {
@@ -152,7 +152,7 @@ async function enviarCadastro(evento) {
   try {
     const resposta = await fetch(`${API_BASE}auth/cadastro.php`, { method: 'POST', body: dados, credentials: 'same-origin' });
     await lerJson(resposta, 'Não foi possível concluir o cadastro.');
-    window.location.href = 'principal.html';
+    window.location.href = 'principal.php';
   } catch (erro) {
     alert(erro.message);
     if (botao) { botao.disabled = false; botao.textContent = 'Cadastrar'; }
